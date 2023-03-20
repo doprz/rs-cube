@@ -1,6 +1,10 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 const CUBE_SIZE: f32 = 1.0; // Unit Cube
+const FRAC_CUBE_SIZE_2: f32 = CUBE_SIZE / 2.0;
+const FRAC_CUBE_SIZE_3: f32 = CUBE_SIZE / 3.0;
+const FRAC_CUBE_SIZE_4: f32 = CUBE_SIZE / 4.0;
+
 const GRID_SPACING: f32 = 0.04;
 const GRID_LINE_COLOR: &str = "\x1B[30m";
 
@@ -76,30 +80,30 @@ fn render_cube_axis(trig_values: &[f32], spacing: f32, rotated_light_source: &Ve
     let luminance_back: f32 = rotated_surface_normal_back.x*rotated_light_source.x + rotated_surface_normal_back.y*rotated_light_source.y + rotated_surface_normal_back.z*rotated_light_source.z;
 
     // z
-    let k: f32 = CUBE_SIZE / 2.0;
+    let k: f32 = FRAC_CUBE_SIZE_2;
 
     // y
-    let mut i: f32 = -CUBE_SIZE / 2.0;
-    while i <= CUBE_SIZE / 2.0 {
+    let mut i: f32 = -FRAC_CUBE_SIZE_2;
+    while i <= FRAC_CUBE_SIZE_2 {
         // x
-        let mut j: f32 = -CUBE_SIZE / 2.0;
-        while j <= CUBE_SIZE / 2.0 {
+        let mut j: f32 = -FRAC_CUBE_SIZE_2;
+        while j <= FRAC_CUBE_SIZE_2 {
             let mut char_color1: &str = &color1;
             let mut char_color2: &str = &color2;
-            if (i > (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) - GRID_SPACING &&
-                    i < (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) + GRID_SPACING) {
+            if (i > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    i < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
-            } else if (i > (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) - GRID_SPACING &&
-                    i < (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) + GRID_SPACING) {
+            } else if (i > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    i < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
-            } else if (j > (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) - GRID_SPACING &&
-                    j < (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) + GRID_SPACING) {
+            } else if (j > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    j < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
-            } else if (j > (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) - GRID_SPACING &&
-                    j < (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) + GRID_SPACING) {
+            } else if (j > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    j < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
             }

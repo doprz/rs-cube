@@ -14,6 +14,10 @@ const FPS_LIMIT: f32 = 60.0;
 const FRAME_DURATION_MICRO: f32 = 1_000_000.0 / (if FPS_LIMIT != 0.0 {FPS_LIMIT} else {1.0});
 
 const CUBE_SIZE: f32 = 1.0; // Unit Cube
+const FRAC_CUBE_SIZE_2: f32 = CUBE_SIZE / 2.0;
+const FRAC_CUBE_SIZE_3: f32 = CUBE_SIZE / 3.0;
+const FRAC_CUBE_SIZE_4: f32 = CUBE_SIZE / 4.0;
+
 const GRID_SPACING: f32 = 0.04;
 const GRID_LINE_COLOR: &str = ANSI_escape_code::color::BLACK;
 
@@ -121,30 +125,30 @@ fn render_cube_axis_a<'a>(width: u16, height: u16, buffer: &mut [char], cbuffer:
     let luminance_back: f32 = rotated_surface_normal_back.x*rotated_light_source.x + rotated_surface_normal_back.y*rotated_light_source.y + rotated_surface_normal_back.z*rotated_light_source.z;
 
     // z
-    let k: f32 = CUBE_SIZE / 2.0;
+    let k: f32 = FRAC_CUBE_SIZE_2;
 
     // y
-    let mut i: f32 = -CUBE_SIZE / 2.0;
-    while i <= CUBE_SIZE / 2.0 {
+    let mut i: f32 = -FRAC_CUBE_SIZE_2;
+    while i <= FRAC_CUBE_SIZE_2 {
         // x
-        let mut j: f32 = -CUBE_SIZE / 2.0;
-        while j <= CUBE_SIZE / 2.0 {
+        let mut j: f32 = -FRAC_CUBE_SIZE_2;
+        while j <= FRAC_CUBE_SIZE_2 {
             let mut char_color1: &str = &color1;
             let mut char_color2: &str = &color2;
-            if (i > (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) - GRID_SPACING &&
-                    i < (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) + GRID_SPACING) {
+            if (i > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    i < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
-            } else if (i > (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) - GRID_SPACING &&
-                    i < (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) + GRID_SPACING) {
+            } else if (i > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    i < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
-            } else if (j > (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) - GRID_SPACING &&
-                    j < (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) + GRID_SPACING) {
+            } else if (j > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    j < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
-            } else if (j > (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) - GRID_SPACING &&
-                    j < (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) + GRID_SPACING) {
+            } else if (j > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    j < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
             }
@@ -201,29 +205,29 @@ fn render_cube_axis_b<'a>(width: u16, height: u16, buffer: &mut [char], cbuffer:
     let luminance_back: f32 = rotated_surface_normal_back.x*rotated_light_source.x + rotated_surface_normal_back.y*rotated_light_source.y + rotated_surface_normal_back.z*rotated_light_source.z;
 
     // y
-    let i: f32 = -CUBE_SIZE / 2.0;
+    let i: f32 = -FRAC_CUBE_SIZE_2;
 
     // x
-    let mut j: f32 = -CUBE_SIZE / 2.0;
-    while j <= CUBE_SIZE / 2.0 {
-        let mut k: f32 = -CUBE_SIZE / 2.0;
-        while k <= CUBE_SIZE / 2.0 {
+    let mut j: f32 = -FRAC_CUBE_SIZE_2;
+    while j <= FRAC_CUBE_SIZE_2 {
+        let mut k: f32 = -FRAC_CUBE_SIZE_2;
+        while k <= FRAC_CUBE_SIZE_2 {
             let mut char_color1: &str = &color1;
             let mut char_color2: &str = &color2;
-            if (j > (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) - GRID_SPACING &&
-                    j < (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) + GRID_SPACING) {
+            if (j > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    j < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
-            } else if (j > (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) - GRID_SPACING &&
-                    j < (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) + GRID_SPACING) {
+            } else if (j > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    j < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
-            } else if (k > (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) - GRID_SPACING &&
-                    k < (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) + GRID_SPACING) {
+            } else if (k > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    k < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
-            } else if (k > (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) - GRID_SPACING &&
-                    k < (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) + GRID_SPACING) {
+            } else if (k > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    k < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
             }
@@ -280,30 +284,30 @@ fn render_cube_axis_c<'a>(width: u16, height: u16, buffer: &mut [char], cbuffer:
     let luminance_back: f32 = rotated_surface_normal_back.x*rotated_light_source.x + rotated_surface_normal_back.y*rotated_light_source.y + rotated_surface_normal_back.z*rotated_light_source.z;
 
     // x
-    let j: f32 = -CUBE_SIZE / 2.0;
+    let j: f32 = -FRAC_CUBE_SIZE_2;
 
     // z
-    let mut k: f32 = -CUBE_SIZE / 2.0;
-    while k <= CUBE_SIZE / 2.0 {
-        let mut i: f32 = -CUBE_SIZE / 2.0;
-        while i <= CUBE_SIZE / 2.0 {
+    let mut k: f32 = -FRAC_CUBE_SIZE_2;
+    while k <= FRAC_CUBE_SIZE_2 {
+        let mut i: f32 = -FRAC_CUBE_SIZE_2;
+        while i <= FRAC_CUBE_SIZE_2 {
             let mut char_color1: &str = &color1;
             let mut char_color2: &str = &color2;
             
-            if (k > (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) - GRID_SPACING &&
-                    k < (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) + GRID_SPACING) {
+            if (k > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    k < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
-            } else if (k > (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) - GRID_SPACING &&
-                    k < (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) + GRID_SPACING) {
+            } else if (k > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    k < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
-            } else if (i > (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) - GRID_SPACING &&
-                    i < (-CUBE_SIZE/2.0 + CUBE_SIZE/3.0) + GRID_SPACING) {
+            } else if (i > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    i < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
-            } else if (i > (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) - GRID_SPACING &&
-                    i < (CUBE_SIZE/2.0 - CUBE_SIZE/3.0) + GRID_SPACING) {
+            } else if (i > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                    i < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
                 char_color1 = GRID_LINE_COLOR;
                 char_color2 = GRID_LINE_COLOR;
             }
@@ -377,13 +381,10 @@ fn get_term_size() -> Result<(u16, u16), &'static str> {
 }
 
 fn handle_exit() {
-    println!("{}", ANSI_escape_code::EraseScreen);
-    println!("{}", ANSI_escape_code::DisableAltBuffer);
-    // println!("{}", ANSI_escape_code::DISABLE_ALT_BUFFER);
-
-    println!("{}", ANSI_escape_code::color::RESET);
-    println!("{}", ANSI_escape_code::CursorVisible);
-    // println!("{}", ANSI_escape_code::CURSOR_VISIBLE);
+    print!("{}", ANSI_escape_code::EraseScreen);
+    print!("{}", ANSI_escape_code::DisableAltBuffer);
+    print!("{}", ANSI_escape_code::color::RESET);
+    print!("{}", ANSI_escape_code::CursorVisible);
 }
 
 fn main() {
@@ -398,7 +399,17 @@ fn main() {
     let mut width: u16 = 100;
     let mut height: u16 = 50;
 
-    // let term_size = get_term_size();
+    let term_size = get_term_size();
+
+    match term_size {
+        Ok(s) => {
+            width = s.0;
+            height = s.1;
+        },
+        Err(err) => {
+            println!("{}", err)
+        }
+    }
 
     let mut buffer: Vec<char> = vec![' '; (width * height).into()];
     let mut buffer_prev: Vec<char> = vec![' '; (width * height).into()];
@@ -424,7 +435,8 @@ fn main() {
 
     let mut trig_values: Vec<f32> = Vec::new();
 
-    let mut frame_times: Vec<u32> = Vec::new();
+    let total_frames = 1_000;
+    let mut frame_times: Vec<u128> = Vec::with_capacity(total_frames);
 
     let mut a: f32 = -std::f32::consts::FRAC_PI_2; // Axis facing the screen (z-axis)
     let mut b: f32 = -std::f32::consts::FRAC_PI_2; // Up / Down axis (y-axis)
@@ -460,7 +472,7 @@ fn main() {
     norm_vector(&mut rotated_light_source);
     
     // loop {
-    for _i in 0..100 {
+    for _ in 0..total_frames {
         let start = Instant::now();
         a += 0.03;
         b += 0.02;
@@ -486,15 +498,26 @@ fn main() {
         let ms_duration = us_duration as f64 / 1000.0;
         let fps: f64 = 1_000_000.0 / (us_duration as f64);
 
+        frame_times.push(us_duration);
+
         print!("{}{}{}\r", ANSI_escape_code::set_cursor_pos(1, 1 + 24), ANSI_escape_code::color::RESET, ANSI_escape_code::EraseLineStartToCursor);
         print!("{fps:>7.2}fps", fps=fps);
 
         print!("{}{}{}\r", ANSI_escape_code::set_cursor_pos(2, 1 + 24), ANSI_escape_code::color::RESET, ANSI_escape_code::EraseLineStartToCursor);
         print!("{ms:>7.2}ms ({us:>7}us)", ms=ms_duration, us=us_duration);
 
-        let sleep_dur = std::time::Duration::from_millis(100);
-        std::thread::sleep(sleep_dur);
+        // let sleep_dur = std::time::Duration::from_millis(50);
+        // std::thread::sleep(sleep_dur);
     }
     
-    handle_exit()
+    handle_exit();
+
+    println!("Width: {} | Height: {}", width, height);
+
+    let sum: u128 = frame_times.iter().sum();
+    let frames = frame_times.len();
+    let frame_avg = sum / frames as u128;
+
+    println!("Frame Average: {}us", frame_avg);
+    println!("FPS Average: {}", 1_000_000 / frame_avg);
 }
