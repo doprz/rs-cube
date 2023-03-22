@@ -79,9 +79,9 @@ fn update_buffers<'a>(
     // buffer: &mut [char],
     // zbuffer: &mut [f32],
     // cbuffer: &mut [&'a str],
-    buffer: Arc<Mutex<Vec<char>>>,
-    zbuffer: Arc<Mutex<Vec<f32>>>,
-    cbuffer: Arc<Mutex<Vec<&'a str>>>,
+    buffer: &Arc<Mutex<Vec<char>>>,
+    zbuffer: &Arc<Mutex<Vec<f32>>>,
+    cbuffer: &Arc<Mutex<Vec<&'a str>>>,
     trig_values: &[f32],
     char_color: &'a str,
     luminance: f32,
@@ -502,9 +502,9 @@ fn render_frame<'a>(
                     axes_luminance.a.1
                 };
 
-                let a_arc_buffer_ref = Arc::clone(&buffer);
-                let a_arc_zbuffer_ref = Arc::clone(&zbuffer);
-                let a_arc_cbuffer_ref = Arc::clone(&cbuffer);
+                // let a_arc_buffer_ref = Arc::clone(&buffer);
+                // let a_arc_zbuffer_ref = Arc::clone(&zbuffer);
+                // let a_arc_cbuffer_ref = Arc::clone(&cbuffer);
 
                 update_buffers(
                     point.x,
@@ -512,12 +512,12 @@ fn render_frame<'a>(
                     point.z,
                     width,
                     height,
-                    a_arc_buffer_ref,
-                    a_arc_zbuffer_ref,
-                    a_arc_cbuffer_ref,
-                    // buffer, 
-                    // zbuffer, 
-                    // cbuffer,
+                    // a_arc_buffer_ref,
+                    // a_arc_zbuffer_ref,
+                    // a_arc_cbuffer_ref,
+                    buffer, 
+                    zbuffer, 
+                    cbuffer,
                     trig_values,
                     color,
                     luminance,
@@ -544,12 +544,12 @@ fn render_frame<'a>(
                     point.z,
                     width,
                     height,
-                    b_arc_buffer_ref,
-                    b_arc_zbuffer_ref,
-                    b_arc_cbuffer_ref,
-                    // buffer, 
-                    // zbuffer, 
-                    // cbuffer,
+                    // b_arc_buffer_ref,
+                    // b_arc_zbuffer_ref,
+                    // b_arc_cbuffer_ref,
+                    buffer, 
+                    zbuffer, 
+                    cbuffer,
                     trig_values,
                     color,
                     luminance,
@@ -576,12 +576,12 @@ fn render_frame<'a>(
                     point.z,
                     width,
                     height,
-                    c_arc_buffer_ref,
-                    c_arc_zbuffer_ref,
-                    c_arc_cbuffer_ref,
-                    // buffer, 
-                    // zbuffer, 
-                    // cbuffer,
+                    // c_arc_buffer_ref,
+                    // c_arc_zbuffer_ref,
+                    // c_arc_cbuffer_ref,
+                    buffer, 
+                    zbuffer, 
+                    cbuffer,
                     trig_values,
                     color,
                     luminance,
