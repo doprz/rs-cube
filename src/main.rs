@@ -418,12 +418,13 @@ fn render_frame<'a>(mut handle: impl Write, width: u16, height: u16, points: &[P
 
     // write!(handle, "{}", ANSI_escape_code::SetCursorHome).unwrap();
 
-    // let mut prev_set_color: &str = ANSI_escape_code::color::RESET;
+    let mut prev_set_color: &str = ANSI_escape_code::color::RESET;
 
     // for (index, val) in buffer.iter().enumerate() {
     for index in 0..buffer.len() {
         let val = buffer[index];
-        if (val == buffer_prev[index]) && (cbuffer[index] == cbuffer_prev[index]) {
+        let color = cbuffer[index];
+        if (val == buffer_prev[index]) && (color == cbuffer_prev[index]) {
             continue;
         }
 
@@ -431,7 +432,12 @@ fn render_frame<'a>(mut handle: impl Write, width: u16, height: u16, points: &[P
         let y: u32 = (index / width as usize).try_into().unwrap();
 
         // Move cursor, add color, and print char
-        write!(handle, "{}{}{}", ANSI_escape_code::set_cursor_pos(y+1, x+1), cbuffer[index], val).unwrap();
+        if color == prev_set_color {
+            write!(handle, "{}{}", ANSI_escape_code::set_cursor_pos(y+1, x+1), val).unwrap();
+        } else {
+            write!(handle, "{}{}{}", ANSI_escape_code::set_cursor_pos(y+1, x+1), color, val).unwrap();
+            prev_set_color = color;
+        }
     }
 }
 
@@ -465,10 +471,6 @@ fn main() {
     print!("{}", ANSI_escape_code::EraseScreen);
     print!("{}", ANSI_escape_code::CursorInvisible);
 
-    let stdout = io::stdout(); // get the global stdout entity
-    // optional: wrap that handle in a buffer and aquire a lock on it
-    let mut handle = io::BufWriter::new(stdout.lock());
-
     let mut width: u16 = 100;
     let mut height: u16 = 50;
 
@@ -483,6 +485,11 @@ fn main() {
             println!("{}", err)
         }
     }
+
+    let stdout = io::stdout(); // get the global stdout entity
+    // optional: wrap that handle in a buffer and aquire a lock on it
+    // let mut handle = io::BufWriter::new(stdout.lock());
+    let mut handle = io::BufWriter::with_capacity((width*height*3).into(), stdout.lock());
 
     let mut buffer: Vec<char> = vec![' '; (width * height).into()];
     let mut buffer_prev: Vec<char> = vec![' '; (width * height).into()];
