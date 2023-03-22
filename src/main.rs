@@ -4,10 +4,28 @@ use std::io::{self, Write};
 use std::time::{Duration, Instant};
 use libc::{ioctl, winsize, STDOUT_FILENO, TIOCGWINSZ};
 
+struct Point3D {
+    x: f32,
+    y: f32,
+    z: f32,
+}
+
 struct Vector3f {
     x: f32,
     y: f32,
     z: f32,
+}
+
+struct PointsAxisRange {
+    a: usize,
+    b: usize,
+    c: usize,
+}
+
+struct AxesLuminance {
+    a: (f32, f32),
+    b: (f32, f32),
+    c: (f32, f32),
 }
 
 const FPS_LIMIT: f32 = 60.0;
@@ -41,7 +59,7 @@ fn norm_vector(vec: &mut Vector3f) {
     // one over mag
     let oomag: f32 = 1.0 / mag;
 
-    if (mag > 0.0) {
+    if mag > 0.0 {
         vec.x = x * oomag;
         vec.y = y * oomag;
         vec.z = z * oomag;
@@ -49,14 +67,17 @@ fn norm_vector(vec: &mut Vector3f) {
 }
 
 fn update_buffers<'a>(i: f32, j: f32, k: f32, width: u16, height: u16, buffer: &mut [char], zbuffer: &mut [f32], cbuffer: &mut [&'a str], trig_values: &[f32] , char_color: &'a str, luminance: f32) {
-    let sin_a = &trig_values[0];
-    let cos_a = &trig_values[1];
+    assert!(zbuffer.len() == buffer.len() && cbuffer.len() == buffer.len());
+    let trig_values = &trig_values[..6];
 
-    let sin_b = &trig_values[2];
-    let cos_b = &trig_values[3];
+    let sin_a = trig_values[0];
+    let cos_a = trig_values[1];
 
-    let sin_c = &trig_values[4];
-    let cos_c = &trig_values[5];
+    let sin_b = trig_values[2];
+    let cos_b = trig_values[3];
+
+    let sin_c = trig_values[4];
+    let cos_c = trig_values[5];
 
     let x: f32 = cos_a*cos_b*j + (cos_a*sin_b*sin_c - sin_a*cos_c)*i + (cos_a*sin_b*cos_c + sin_a*sin_c)*k;
     let y: f32 = sin_a*cos_b*j + (sin_a*sin_b*sin_c + cos_a*cos_c)*i + (sin_a*sin_b*cos_c - cos_a*sin_c)*k;
@@ -76,8 +97,8 @@ fn update_buffers<'a>(i: f32, j: f32, k: f32, width: u16, height: u16, buffer: &
     // else if luminance < 0, then the plane is facing away from the light source
     // else if luminance = 0, then the plane and the light source are perpendicular
     let luminance_index: usize = (luminance * 11.0) as usize;
-    if (index >= 0 && index < index_limit) {
-        if (ooz > zbuffer[index]) {
+    if index < index_limit {
+        if ooz > zbuffer[index] {
             zbuffer[index] = ooz;
             cbuffer[index] = char_color;
             buffer[index] = ".,-~:;=!*#$@".as_bytes()[if luminance > 0.0 {luminance_index} else {0}] as char;
@@ -85,166 +106,168 @@ fn update_buffers<'a>(i: f32, j: f32, k: f32, width: u16, height: u16, buffer: &
     }
 }
 
-fn render_cube_axis_a<'a>(width: u16, height: u16, buffer: &mut [char], cbuffer: &mut [&'a str], zbuffer: &mut [f32], trig_values: &[f32], spacing: f32, rotated_light_source: &Vector3f, color1: &'a str, color2: &'a str) {
-    let sin_a = &trig_values[0];
-    let cos_a = &trig_values[1];
+// fn init(points: &mut [Point3D], width: usize) {
+// fn init(points: &mut Vec<Point3D>, size: usize, width: usize) {
+fn init(points: &mut Vec<Point3D>, points_color: &mut Vec<&str>, points_axis_range: &mut PointsAxisRange, spacing: f32) {
+    // Axis A
+    {
+        // z
+        let k: f32 = FRAC_CUBE_SIZE_2;
 
-    let sin_b = &trig_values[2];
-    let cos_b = &trig_values[3];
+        // y
+        let mut i: f32 = -FRAC_CUBE_SIZE_2;
+        while i <= FRAC_CUBE_SIZE_2 {
+            // x
+            let mut j: f32 = -FRAC_CUBE_SIZE_2;
+            while j <= FRAC_CUBE_SIZE_2 {
+                points.push(Point3D {
+                    x: i,
+                    y: j,
+                    z: k,
+                });
+                points.push(Point3D {
+                    x: i,
+                    y: j,
+                    z: -k,
+                });
 
-    let sin_c = &trig_values[4];
-    let cos_c = &trig_values[5];
+                let mut char_color1: &str = ANSI_escape_code::color::YELLOW;
+                let mut char_color2: &str = ANSI_escape_code::color::WHITE;
+                if i > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                        i < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING {
+                    char_color1 = GRID_LINE_COLOR;
+                    char_color2 = GRID_LINE_COLOR;
+                } else if i > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                        i < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING {
+                    char_color1 = GRID_LINE_COLOR;
+                    char_color2 = GRID_LINE_COLOR;
+                } else if j > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                        j < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING {
+                    char_color1 = GRID_LINE_COLOR;
+                    char_color2 = GRID_LINE_COLOR;
+                } else if j > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                        j < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING {
+                    char_color1 = GRID_LINE_COLOR;
+                    char_color2 = GRID_LINE_COLOR;
+                }
 
-    let surface_normal_front = Vector3f {
-        x: 0.0,
-        y: 0.0,
-        z: CUBE_SIZE,
-    };
+                points_color.push(char_color1);
+                points_color.push(char_color2);
 
-    let surface_normal_back = Vector3f {
-        x: 0.0,
-        y: 0.0,
-        z: -CUBE_SIZE,
-    };
+                j += spacing;
+            }
+            i += spacing;
+        }
 
-    let mut rotated_surface_normal_front = Vector3f {
-        x: cos_a*cos_b*surface_normal_front.x + (cos_a*sin_b*sin_c - sin_a*cos_c)*surface_normal_front.y + (cos_a*sin_b*cos_c + sin_a*sin_c)*surface_normal_front.z,
-        y: sin_a*cos_b*surface_normal_front.x + (sin_a*sin_b*sin_c + cos_a*cos_c)*surface_normal_front.y + (sin_a*sin_b*cos_c - cos_a*sin_c)*surface_normal_front.z,
-        z: -surface_normal_front.x*sin_b + surface_normal_front.y*cos_b*sin_c + surface_normal_front.z*cos_b*cos_c
-    };
-    norm_vector(&mut rotated_surface_normal_front);
+        points_axis_range.a = points.len();
+    }
 
-    let mut rotated_surface_normal_back = Vector3f {
-        x: cos_a*cos_b*surface_normal_back.x + (cos_a*sin_b*sin_c - sin_a*cos_c)*surface_normal_back.y + (cos_a*sin_b*cos_c + sin_a*sin_c)*surface_normal_back.z,
-        y: sin_a*cos_b*surface_normal_back.x + (sin_a*sin_b*sin_c + cos_a*cos_c)*surface_normal_back.y + (sin_a*sin_b*cos_c - cos_a*sin_c)*surface_normal_back.z,
-        z: -surface_normal_back.x*sin_b + surface_normal_back.y*cos_b*sin_c + surface_normal_back.z*cos_b*cos_c
-    };
-    norm_vector(&mut rotated_surface_normal_back);
+    // Axis B
+    {
+        // y
+        let i: f32 = FRAC_CUBE_SIZE_2;
 
-    let luminance_front: f32 = rotated_surface_normal_front.x*rotated_light_source.x + rotated_surface_normal_front.y*rotated_light_source.y + rotated_surface_normal_front.z*rotated_light_source.z;
-    let luminance_back: f32 = rotated_surface_normal_back.x*rotated_light_source.x + rotated_surface_normal_back.y*rotated_light_source.y + rotated_surface_normal_back.z*rotated_light_source.z;
-
-    // z
-    let k: f32 = FRAC_CUBE_SIZE_2;
-
-    // y
-    let mut i: f32 = -FRAC_CUBE_SIZE_2;
-    while i <= FRAC_CUBE_SIZE_2 {
         // x
         let mut j: f32 = -FRAC_CUBE_SIZE_2;
         while j <= FRAC_CUBE_SIZE_2 {
-            let mut char_color1: &str = &color1;
-            let mut char_color2: &str = &color2;
-            if (i > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
-                    i < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
-                char_color1 = GRID_LINE_COLOR;
-                char_color2 = GRID_LINE_COLOR;
-            } else if (i > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
-                    i < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
-                char_color1 = GRID_LINE_COLOR;
-                char_color2 = GRID_LINE_COLOR;
-            } else if (j > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
-                    j < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
-                char_color1 = GRID_LINE_COLOR;
-                char_color2 = GRID_LINE_COLOR;
-            } else if (j > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
-                    j < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
-                char_color1 = GRID_LINE_COLOR;
-                char_color2 = GRID_LINE_COLOR;
+            let mut k: f32 = -FRAC_CUBE_SIZE_2;
+            while k <= FRAC_CUBE_SIZE_2 {
+                points.push(Point3D {
+                    x: i,
+                    y: j,
+                    z: k,
+                });
+                points.push(Point3D {
+                    x: -i,
+                    y: j,
+                    z: k,
+                });
+
+                let mut char_color1: &str = ANSI_escape_code::color::GREEN;
+                let mut char_color2: &str = ANSI_escape_code::color::BLUE;
+                if j > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                        j < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING {
+                    char_color1 = GRID_LINE_COLOR;
+                    char_color2 = GRID_LINE_COLOR;
+                } else if j > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                        j < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING {
+                    char_color1 = GRID_LINE_COLOR;
+                    char_color2 = GRID_LINE_COLOR;
+                } else if k > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                        k < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING {
+                    char_color1 = GRID_LINE_COLOR;
+                    char_color2 = GRID_LINE_COLOR;
+                } else if k > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                        k < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING {
+                    char_color1 = GRID_LINE_COLOR;
+                    char_color2 = GRID_LINE_COLOR;
+                }
+
+                points_color.push(char_color1);
+                points_color.push(char_color2);
+
+                k += spacing;
             }
-
-            // Front Face
-            update_buffers(i, j, k, width, height, buffer, zbuffer, cbuffer, trig_values, char_color1, luminance_front);
-
-            // Back Face
-            update_buffers(i, j, -k, width, height, buffer, zbuffer, cbuffer, trig_values, char_color2, luminance_back);
-
             j += spacing;
         }
-        i += spacing;
+        points_axis_range.b = points.len();
     }
-}
 
-fn render_cube_axis_b<'a>(width: u16, height: u16, buffer: &mut [char], cbuffer: &mut [&'a str], zbuffer: &mut [f32], trig_values: &[f32], spacing: f32, rotated_light_source: &Vector3f, color1: &'a str, color2: &'a str) {
-    let sin_a = &trig_values[0];
-    let cos_a = &trig_values[1];
+    // Axis C
+    {
+        // x
+        let j: f32 = FRAC_CUBE_SIZE_2;
 
-    let sin_b = &trig_values[2];
-    let cos_b = &trig_values[3];
-
-    let sin_c = &trig_values[4];
-    let cos_c = &trig_values[5];
-
-    let surface_normal_front = Vector3f {
-        x: 0.0,
-        y: 0.0,
-        z: CUBE_SIZE,
-    };
-
-    let surface_normal_back = Vector3f {
-        x: 0.0,
-        y: 0.0,
-        z: -CUBE_SIZE,
-    };
-
-    let mut rotated_surface_normal_front = Vector3f {
-        x: cos_a*cos_b*surface_normal_front.x + (cos_a*sin_b*sin_c - sin_a*cos_c)*surface_normal_front.y + (cos_a*sin_b*cos_c + sin_a*sin_c)*surface_normal_front.z,
-        y: sin_a*cos_b*surface_normal_front.x + (sin_a*sin_b*sin_c + cos_a*cos_c)*surface_normal_front.y + (sin_a*sin_b*cos_c - cos_a*sin_c)*surface_normal_front.z,
-        z: -surface_normal_front.x*sin_b + surface_normal_front.y*cos_b*sin_c + surface_normal_front.z*cos_b*cos_c
-    };
-    norm_vector(&mut rotated_surface_normal_front);
-
-    let mut rotated_surface_normal_back = Vector3f {
-        x: cos_a*cos_b*surface_normal_back.x + (cos_a*sin_b*sin_c - sin_a*cos_c)*surface_normal_back.y + (cos_a*sin_b*cos_c + sin_a*sin_c)*surface_normal_back.z,
-        y: sin_a*cos_b*surface_normal_back.x + (sin_a*sin_b*sin_c + cos_a*cos_c)*surface_normal_back.y + (sin_a*sin_b*cos_c - cos_a*sin_c)*surface_normal_back.z,
-        z: -surface_normal_back.x*sin_b + surface_normal_back.y*cos_b*sin_c + surface_normal_back.z*cos_b*cos_c
-    };
-    norm_vector(&mut rotated_surface_normal_back);
-
-    let luminance_front: f32 = rotated_surface_normal_front.x*rotated_light_source.x + rotated_surface_normal_front.y*rotated_light_source.y + rotated_surface_normal_front.z*rotated_light_source.z;
-    let luminance_back: f32 = rotated_surface_normal_back.x*rotated_light_source.x + rotated_surface_normal_back.y*rotated_light_source.y + rotated_surface_normal_back.z*rotated_light_source.z;
-
-    // y
-    let i: f32 = -FRAC_CUBE_SIZE_2;
-
-    // x
-    let mut j: f32 = -FRAC_CUBE_SIZE_2;
-    while j <= FRAC_CUBE_SIZE_2 {
+        // z
         let mut k: f32 = -FRAC_CUBE_SIZE_2;
         while k <= FRAC_CUBE_SIZE_2 {
-            let mut char_color1: &str = &color1;
-            let mut char_color2: &str = &color2;
-            if (j > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
-                    j < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
-                char_color1 = GRID_LINE_COLOR;
-                char_color2 = GRID_LINE_COLOR;
-            } else if (j > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
-                    j < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
-                char_color1 = GRID_LINE_COLOR;
-                char_color2 = GRID_LINE_COLOR;
-            } else if (k > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
-                    k < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
-                char_color1 = GRID_LINE_COLOR;
-                char_color2 = GRID_LINE_COLOR;
-            } else if (k > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
-                    k < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
-                char_color1 = GRID_LINE_COLOR;
-                char_color2 = GRID_LINE_COLOR;
+            let mut i: f32 = -FRAC_CUBE_SIZE_2;
+            while i <= FRAC_CUBE_SIZE_2 {
+                points.push(Point3D {
+                    x: i,
+                    y: j,
+                    z: k,
+                });
+                points.push(Point3D {
+                    x: i,
+                    y: -j,
+                    z: k,
+                });
+
+                let mut char_color1: &str = ANSI_escape_code::color::BOLD_RED;
+                let mut char_color2: &str = ANSI_escape_code::color::RED;
+                if k > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                        k < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING {
+                    char_color1 = GRID_LINE_COLOR;
+                    char_color2 = GRID_LINE_COLOR;
+                } else if k > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                        k < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING {
+                    char_color1 = GRID_LINE_COLOR;
+                    char_color2 = GRID_LINE_COLOR;
+                } else if i > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                        i < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING {
+                    char_color1 = GRID_LINE_COLOR;
+                    char_color2 = GRID_LINE_COLOR;
+                } else if i > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
+                        i < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING {
+                    char_color1 = GRID_LINE_COLOR;
+                    char_color2 = GRID_LINE_COLOR;
+                }
+                
+                points_color.push(char_color1);
+                points_color.push(char_color2);
+
+                i += spacing;
             }
-
-            // Front Face
-            update_buffers(i, j, k, width, height, buffer, zbuffer, cbuffer, trig_values, char_color1, luminance_front);
-
-            // Back Face
-            update_buffers(-i, j, k, width, height, buffer, zbuffer, cbuffer, trig_values, char_color2, luminance_back);
-
             k += spacing;
         }
-        j += spacing;
+        points_axis_range.c = points.len();
     }
 }
 
-fn render_cube_axis_c<'a>(width: u16, height: u16, buffer: &mut [char], cbuffer: &mut [&'a str], zbuffer: &mut [f32], trig_values: &[f32], spacing: f32, rotated_light_source: &Vector3f, color1: &'a str, color2: &'a str) {
+fn get_axes_luminance(trig_values: &[f32], rotated_light_source: &Vector3f) -> AxesLuminance {
+    let trig_values = &trig_values[..6];
+
     let sin_a = &trig_values[0];
     let cos_a = &trig_values[1];
 
@@ -254,95 +277,153 @@ fn render_cube_axis_c<'a>(width: u16, height: u16, buffer: &mut [char], cbuffer:
     let sin_c = &trig_values[4];
     let cos_c = &trig_values[5];
 
-    let surface_normal_front = Vector3f {
+    // Axis A
+    let a_surface_normal_front = Vector3f {
         x: 0.0,
         y: 0.0,
         z: CUBE_SIZE,
     };
 
-    let surface_normal_back = Vector3f {
+    let a_surface_normal_back = Vector3f {
         x: 0.0,
         y: 0.0,
         z: -CUBE_SIZE,
     };
 
-    let mut rotated_surface_normal_front = Vector3f {
-        x: cos_a*cos_b*surface_normal_front.x + (cos_a*sin_b*sin_c - sin_a*cos_c)*surface_normal_front.y + (cos_a*sin_b*cos_c + sin_a*sin_c)*surface_normal_front.z,
-        y: sin_a*cos_b*surface_normal_front.x + (sin_a*sin_b*sin_c + cos_a*cos_c)*surface_normal_front.y + (sin_a*sin_b*cos_c - cos_a*sin_c)*surface_normal_front.z,
-        z: -surface_normal_front.x*sin_b + surface_normal_front.y*cos_b*sin_c + surface_normal_front.z*cos_b*cos_c
+    let mut a_rotated_surface_normal_front = Vector3f {
+        x: cos_a*cos_b*a_surface_normal_front.x + (cos_a*sin_b*sin_c - sin_a*cos_c)*a_surface_normal_front.y + (cos_a*sin_b*cos_c + sin_a*sin_c)*a_surface_normal_front.z,
+        y: sin_a*cos_b*a_surface_normal_front.x + (sin_a*sin_b*sin_c + cos_a*cos_c)*a_surface_normal_front.y + (sin_a*sin_b*cos_c - cos_a*sin_c)*a_surface_normal_front.z,
+        z: -a_surface_normal_front.x*sin_b + a_surface_normal_front.y*cos_b*sin_c + a_surface_normal_front.z*cos_b*cos_c
     };
-    norm_vector(&mut rotated_surface_normal_front);
+    norm_vector(&mut a_rotated_surface_normal_front);
 
-    let mut rotated_surface_normal_back = Vector3f {
-        x: cos_a*cos_b*surface_normal_back.x + (cos_a*sin_b*sin_c - sin_a*cos_c)*surface_normal_back.y + (cos_a*sin_b*cos_c + sin_a*sin_c)*surface_normal_back.z,
-        y: sin_a*cos_b*surface_normal_back.x + (sin_a*sin_b*sin_c + cos_a*cos_c)*surface_normal_back.y + (sin_a*sin_b*cos_c - cos_a*sin_c)*surface_normal_back.z,
-        z: -surface_normal_back.x*sin_b + surface_normal_back.y*cos_b*sin_c + surface_normal_back.z*cos_b*cos_c
+    let mut a_rotated_surface_normal_back = Vector3f {
+        x: cos_a*cos_b*a_surface_normal_back.x + (cos_a*sin_b*sin_c - sin_a*cos_c)*a_surface_normal_back.y + (cos_a*sin_b*cos_c + sin_a*sin_c)*a_surface_normal_back.z,
+        y: sin_a*cos_b*a_surface_normal_back.x + (sin_a*sin_b*sin_c + cos_a*cos_c)*a_surface_normal_back.y + (sin_a*sin_b*cos_c - cos_a*sin_c)*a_surface_normal_back.z,
+        z: -a_surface_normal_back.x*sin_b + a_surface_normal_back.y*cos_b*sin_c + a_surface_normal_back.z*cos_b*cos_c
     };
-    norm_vector(&mut rotated_surface_normal_back);
+    norm_vector(&mut a_rotated_surface_normal_back);
 
-    let luminance_front: f32 = rotated_surface_normal_front.x*rotated_light_source.x + rotated_surface_normal_front.y*rotated_light_source.y + rotated_surface_normal_front.z*rotated_light_source.z;
-    let luminance_back: f32 = rotated_surface_normal_back.x*rotated_light_source.x + rotated_surface_normal_back.y*rotated_light_source.y + rotated_surface_normal_back.z*rotated_light_source.z;
+    let a_luminance_front: f32 = a_rotated_surface_normal_front.x*rotated_light_source.x + a_rotated_surface_normal_front.y*rotated_light_source.y + a_rotated_surface_normal_front.z*rotated_light_source.z;
+    let a_luminance_back: f32 = a_rotated_surface_normal_back.x*rotated_light_source.x + a_rotated_surface_normal_back.y*rotated_light_source.y + a_rotated_surface_normal_back.z*rotated_light_source.z;
 
-    // x
-    let j: f32 = -FRAC_CUBE_SIZE_2;
+    // Axis B
+    let b_surface_normal_front = Vector3f {
+        x: 0.0,
+        y: CUBE_SIZE,
+        z: 0.0,
+    };
 
-    // z
-    let mut k: f32 = -FRAC_CUBE_SIZE_2;
-    while k <= FRAC_CUBE_SIZE_2 {
-        let mut i: f32 = -FRAC_CUBE_SIZE_2;
-        while i <= FRAC_CUBE_SIZE_2 {
-            let mut char_color1: &str = &color1;
-            let mut char_color2: &str = &color2;
-            
-            if (k > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
-                    k < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
-                char_color1 = GRID_LINE_COLOR;
-                char_color2 = GRID_LINE_COLOR;
-            } else if (k > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
-                    k < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
-                char_color1 = GRID_LINE_COLOR;
-                char_color2 = GRID_LINE_COLOR;
-            } else if (i > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING &&
-                    i < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING) {
-                char_color1 = GRID_LINE_COLOR;
-                char_color2 = GRID_LINE_COLOR;
-            } else if (i > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING &&
-                    i < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING) {
-                char_color1 = GRID_LINE_COLOR;
-                char_color2 = GRID_LINE_COLOR;
-            }
+    let b_surface_normal_back = Vector3f {
+        x: 0.0,
+        y: -CUBE_SIZE,
+        z: 0.0,
+    };
 
-            // Front Face
-            update_buffers(i, j, k, width, height, buffer, zbuffer, cbuffer, trig_values, char_color1, luminance_front);
+    let mut b_rotated_surface_normal_front = Vector3f {
+        x: cos_a*cos_b*b_surface_normal_front.x + (cos_a*sin_b*sin_c - sin_a*cos_c)*b_surface_normal_front.y + (cos_a*sin_b*cos_c + sin_a*sin_c)*b_surface_normal_front.z,
+        y: sin_a*cos_b*b_surface_normal_front.x + (sin_a*sin_b*sin_c + cos_a*cos_c)*b_surface_normal_front.y + (sin_a*sin_b*cos_c - cos_a*sin_c)*b_surface_normal_front.z,
+        z: -b_surface_normal_front.x*sin_b + b_surface_normal_front.y*cos_b*sin_c + b_surface_normal_front.z*cos_b*cos_c
+    };
+    norm_vector(&mut b_rotated_surface_normal_front);
 
-            // Back Face
-            update_buffers(i, -j, k, width, height, buffer, zbuffer, cbuffer, trig_values, char_color2, luminance_back);
-            i += spacing;
-        }
-        k += spacing;
+    let mut b_rotated_surface_normal_back = Vector3f {
+        x: cos_a*cos_b*b_surface_normal_back.x + (cos_a*sin_b*sin_c - sin_a*cos_c)*b_surface_normal_back.y + (cos_a*sin_b*cos_c + sin_a*sin_c)*b_surface_normal_back.z,
+        y: sin_a*cos_b*b_surface_normal_back.x + (sin_a*sin_b*sin_c + cos_a*cos_c)*b_surface_normal_back.y + (sin_a*sin_b*cos_c - cos_a*sin_c)*b_surface_normal_back.z,
+        z: -b_surface_normal_back.x*sin_b + b_surface_normal_back.y*cos_b*sin_c + b_surface_normal_back.z*cos_b*cos_c
+    };
+    norm_vector(&mut b_rotated_surface_normal_back);
+
+    let b_luminance_front: f32 = b_rotated_surface_normal_front.x*rotated_light_source.x + b_rotated_surface_normal_front.y*rotated_light_source.y + b_rotated_surface_normal_front.z*rotated_light_source.z;
+    let b_luminance_back: f32 = b_rotated_surface_normal_back.x*rotated_light_source.x + b_rotated_surface_normal_back.y*rotated_light_source.y + b_rotated_surface_normal_back.z*rotated_light_source.z;
+
+    // Axis C
+    let c_surface_normal_front = Vector3f {
+        x: CUBE_SIZE,
+        y: 0.0,
+        z: 0.0,
+    };
+
+    let c_surface_normal_back = Vector3f {
+        x: -CUBE_SIZE,
+        y: 0.0,
+        z: 0.0,
+    };
+
+    let mut c_rotated_surface_normal_front = Vector3f {
+        x: cos_a*cos_b*c_surface_normal_front.x + (cos_a*sin_b*sin_c - sin_a*cos_c)*c_surface_normal_front.y + (cos_a*sin_b*cos_c + sin_a*sin_c)*c_surface_normal_front.z,
+        y: sin_a*cos_b*c_surface_normal_front.x + (sin_a*sin_b*sin_c + cos_a*cos_c)*c_surface_normal_front.y + (sin_a*sin_b*cos_c - cos_a*sin_c)*c_surface_normal_front.z,
+        z: -c_surface_normal_front.x*sin_b + c_surface_normal_front.y*cos_b*sin_c + c_surface_normal_front.z*cos_b*cos_c
+    };
+    norm_vector(&mut c_rotated_surface_normal_front);
+
+    let mut c_rotated_surface_normal_back = Vector3f {
+        x: cos_a*cos_b*c_surface_normal_back.x + (cos_a*sin_b*sin_c - sin_a*cos_c)*c_surface_normal_back.y + (cos_a*sin_b*cos_c + sin_a*sin_c)*c_surface_normal_back.z,
+        y: sin_a*cos_b*c_surface_normal_back.x + (sin_a*sin_b*sin_c + cos_a*cos_c)*c_surface_normal_back.y + (sin_a*sin_b*cos_c - cos_a*sin_c)*c_surface_normal_back.z,
+        z: -c_surface_normal_back.x*sin_b + c_surface_normal_back.y*cos_b*sin_c + c_surface_normal_back.z*cos_b*cos_c
+    };
+    norm_vector(&mut c_rotated_surface_normal_back);
+
+    let c_luminance_front: f32 = c_rotated_surface_normal_front.x*rotated_light_source.x + c_rotated_surface_normal_front.y*rotated_light_source.y + c_rotated_surface_normal_front.z*rotated_light_source.z;
+    let c_luminance_back: f32 = c_rotated_surface_normal_back.x*rotated_light_source.x + c_rotated_surface_normal_back.y*rotated_light_source.y + c_rotated_surface_normal_back.z*rotated_light_source.z;
+
+    AxesLuminance {
+        a: (a_luminance_front, a_luminance_back),
+        b: (b_luminance_front, b_luminance_back),
+        c: (c_luminance_front, c_luminance_back),
     }
 }
 
-fn render_frame<'a>(mut handle: impl Write, width: u16, height: u16, buffer: &mut [char], buffer_prev: &mut [char], cbuffer: &mut [&'a str], cbuffer_prev: &mut [&'a str], zbuffer: &mut [f32], trig_values: &[f32], spacing: f32, rotated_light_source: &Vector3f) {
+#[inline(never)]
+fn render_frame<'a>(mut handle: impl Write, width: u16, height: u16, points: &[Point3D], points_color: &[&'a str], points_axis_range: &PointsAxisRange, buffer: &mut [char], buffer_prev: &mut [char], cbuffer: &mut [&'a str], cbuffer_prev: &mut [&'a str], zbuffer: &mut [f32], trig_values: &[f32], rotated_light_source: &Vector3f) {
     buffer_prev.copy_from_slice(buffer);
     cbuffer_prev.copy_from_slice(cbuffer);
-    // buffer_prev.clone_from_slice(&buffer);
-    // cbuffer_prev.clone_from_slice(&cbuffer);
 
     buffer.fill(' ');
     cbuffer.fill(ANSI_escape_code::color::RESET);
     zbuffer.fill(0.0);
 
-    render_cube_axis_a(width, height, buffer, cbuffer, zbuffer, trig_values, spacing, rotated_light_source, ANSI_escape_code::color::YELLOW, ANSI_escape_code::color::WHITE);
-    render_cube_axis_b(width, height, buffer, cbuffer, zbuffer, trig_values, spacing, rotated_light_source, ANSI_escape_code::color::GREEN, ANSI_escape_code::color::BLUE);
-    render_cube_axis_c(width, height, buffer, cbuffer, zbuffer, trig_values, spacing, rotated_light_source, ANSI_escape_code::color::BOLD_RED, ANSI_escape_code::color::RED);
+    let points_color = &points_color[..points.len()];
 
-    print!("{}", ANSI_escape_code::SetCursorHome);
+    let axes_luminance = get_axes_luminance(trig_values, rotated_light_source);
+    write!(handle, "{}{}{}\r", ANSI_escape_code::set_cursor_pos(3, 1 + 24), ANSI_escape_code::color::RESET, ANSI_escape_code::EraseLineStartToCursor).unwrap();
+    write!(handle, "Points: {}", points.len()).unwrap();
 
-    let mut prev_set_color: &str = ANSI_escape_code::color::RESET;
+    // for (index, point) in points.iter().enumerate() {
+    for index in 0..points.len() {
+        let point = &points[index];
+        let color = points_color[index];
+        let luminance = if index < points_axis_range.a {
+            if index & 1 == 0 {
+                axes_luminance.a.0
+            } else {
+                axes_luminance.a.1
+            }
+        } else if index < points_axis_range.b {
+            if index & 1 == 0 {
+                axes_luminance.b.0
+            } else {
+                axes_luminance.b.1
+            }
+        } else {
+            if index & 1 == 0 {
+                axes_luminance.c.0
+            } else {
+                axes_luminance.c.1
+            }
+        };
+        update_buffers(point.x, point.y, point.z, width, height, buffer, zbuffer, cbuffer, trig_values, color, luminance);
+    }
 
-    for (index, val) in buffer.iter().enumerate() {
-        if (*val == buffer_prev[index]) && (*cbuffer[index] == *cbuffer_prev[index]) {
+
+    // write!(handle, "{}", ANSI_escape_code::SetCursorHome).unwrap();
+
+    // let mut prev_set_color: &str = ANSI_escape_code::color::RESET;
+
+    // for (index, val) in buffer.iter().enumerate() {
+    for index in 0..buffer.len() {
+        let val = buffer[index];
+        if (val == buffer_prev[index]) && (cbuffer[index] == cbuffer_prev[index]) {
             continue;
         }
 
@@ -350,15 +431,7 @@ fn render_frame<'a>(mut handle: impl Write, width: u16, height: u16, buffer: &mu
         let y: u32 = (index / width as usize).try_into().unwrap();
 
         // Move cursor, add color, and print char
-        // printf("\x1b[%d;%dH%s%s%c", y+1, x+1, ANSI_escape_code::color::RESET, (cbuffer_iter + index)->data(), *bufferIter);
-        // print!("{}{}{}", ANSI_escape_code::set_cursor_pos(y+1, x+1), cbuffer[index], val);
-        if prev_set_color == cbuffer[index] {
-            write!(handle, "{}{}", ANSI_escape_code::set_cursor_pos(y+1, x+1), val);
-        } else {
-            write!(handle, "{}{}{}", ANSI_escape_code::set_cursor_pos(y+1, x+1), cbuffer[index], val);
-            prev_set_color = cbuffer[index];
-        }
-        // write!(handle, "{}{}{}", ANSI_escape_code::set_cursor_pos(y+1, x+1), cbuffer[index], val);
+        write!(handle, "{}{}{}", ANSI_escape_code::set_cursor_pos(y+1, x+1), cbuffer[index], val).unwrap();
     }
 }
 
@@ -419,8 +492,19 @@ fn main() {
 
     let mut zbuffer: Vec<f32> = vec![0.0; (width * height).into()];
 
+    assert!(zbuffer.len() == buffer.len() && cbuffer.len() == buffer.len() && buffer_prev.len() == buffer.len() && cbuffer_prev.len() == buffer.len());
+
     let mut spacing: f32 = 3.0 / width as f32;
     let mut k1: f32 = ((width as f32) * (K2 as f32) * 3.0) / (8.0 * ((3 as f32).sqrt() * CUBE_SIZE as f32));
+
+    let points_size = ((CUBE_SIZE * CUBE_SIZE) / spacing).round() as usize;
+    let mut points: Vec<Point3D> = Vec::with_capacity(points_size);
+    let mut points_color: Vec<&str> = Vec::with_capacity(points_size);
+    let mut points_axis_range = PointsAxisRange {
+        a: 0,
+        b: 0,
+        c: 0,
+    };
 
     let light_source = Vector3f {
         x: 0.0, 
@@ -432,8 +516,6 @@ fn main() {
         y: 1.0, 
         z: -1.0
     };
-
-    let mut trig_values: Vec<f32> = Vec::new();
 
     let total_frames = 1_000;
     let mut frame_times: Vec<u128> = Vec::with_capacity(total_frames);
@@ -450,26 +532,29 @@ fn main() {
 
     let mut sin_c: f32 = c.sin();
     let mut cos_c: f32 = c.cos();
-    trig_values = [sin_a, cos_a, sin_b, cos_b, sin_c, cos_c].to_vec();
+    let mut trig_values: Vec<f32> = vec![sin_a, cos_a, sin_b, cos_b, sin_c, cos_c];
 
-    let mut d: f32 = 0.0;
-    let mut e: f32 = 0.0;
-    let mut f: f32 = 0.0;
+    // Rotated Light Source
+    let d: f32 = 0.0;
+    let e: f32 = 0.0;
+    let f: f32 = 0.0;
 
-    let mut sin_d: f32 = d.sin();
-    let mut cos_d: f32 = d.cos();
+    let sin_d: f32 = d.sin();
+    let cos_d: f32 = d.cos();
 
-    let mut sin_e: f32 = e.sin();
-    let mut cos_e: f32 = e.cos();
+    let sin_e: f32 = e.sin();
+    let cos_e: f32 = e.cos();
 
-    let mut sin_f: f32 = f.sin();
-    let mut cos_f: f32 = f.cos();
+    let sin_f: f32 = f.sin();
+    let cos_f: f32 = f.cos();
 
 
     rotated_light_source.x = cos_d*cos_e*light_source.x + (cos_d*sin_e*sin_f - sin_d*cos_f)*light_source.y + (cos_d*sin_e*cos_f + sin_d*sin_f)*light_source.z;
     rotated_light_source.y = sin_d*cos_e*light_source.x + (sin_d*sin_e*sin_f + cos_d*cos_f)*light_source.y + (sin_d*sin_e*cos_f - cos_d*sin_f)*light_source.z;
     rotated_light_source.z = -light_source.x*sin_e + light_source.y*cos_e*sin_f + light_source.z*cos_e*cos_f;
     norm_vector(&mut rotated_light_source);
+
+    init(&mut points, &mut points_color, &mut points_axis_range, spacing);
     
     // loop {
     for _ in 0..total_frames {
@@ -488,8 +573,9 @@ fn main() {
         cos_c = c.cos();
         trig_values = [sin_a, cos_a, sin_b, cos_b, sin_c, cos_c].to_vec();
 
-        render_frame(&mut handle, width, height, &mut buffer, &mut buffer_prev, &mut cbuffer, &mut cbuffer_prev, &mut zbuffer, &trig_values, spacing, &rotated_light_source);
-        handle.flush().expect("Error flushing handle");
+        assert!(zbuffer.len() == buffer.len() && cbuffer.len() == buffer.len() && buffer_prev.len() == buffer.len() && cbuffer_prev.len() == buffer.len());
+        render_frame(&mut handle, width, height, &points, &points_color, &points_axis_range, &mut buffer, &mut buffer_prev, &mut cbuffer, &mut cbuffer_prev, &mut zbuffer, &trig_values, &rotated_light_source);
+        // handle.flush().expect("Error flushing handle");
 
         // let sleep_dur = std::time::Duration::from_millis(200);
         // std::thread::sleep(sleep_dur);
@@ -500,13 +586,14 @@ fn main() {
 
         frame_times.push(us_duration);
 
-        print!("{}{}{}\r", ANSI_escape_code::set_cursor_pos(1, 1 + 24), ANSI_escape_code::color::RESET, ANSI_escape_code::EraseLineStartToCursor);
-        print!("{fps:>7.2}fps", fps=fps);
+        write!(handle, "{}{}{}\r", ANSI_escape_code::set_cursor_pos(1, 1 + 24), ANSI_escape_code::color::RESET, ANSI_escape_code::EraseLineStartToCursor).unwrap();
+        write!(handle, "{fps:>7.2}fps", fps=fps).unwrap();
 
-        print!("{}{}{}\r", ANSI_escape_code::set_cursor_pos(2, 1 + 24), ANSI_escape_code::color::RESET, ANSI_escape_code::EraseLineStartToCursor);
-        print!("{ms:>7.2}ms ({us:>7}us)", ms=ms_duration, us=us_duration);
+        write!(handle, "{}{}{}\r", ANSI_escape_code::set_cursor_pos(2, 1 + 24), ANSI_escape_code::color::RESET, ANSI_escape_code::EraseLineStartToCursor).unwrap();
+        write!(handle, "{ms:>7.2}ms ({us:>7}us)", ms=ms_duration, us=us_duration).unwrap();
+        handle.flush().expect("Error flushing handle");
 
-        // let sleep_dur = std::time::Duration::from_millis(50);
+        // let sleep_dur = std::time::Duration::from_millis(25);
         // std::thread::sleep(sleep_dur);
     }
     
@@ -520,4 +607,6 @@ fn main() {
 
     println!("Frame Average: {}us", frame_avg);
     println!("FPS Average: {}", 1_000_000 / frame_avg);
+
+    println!("Points: {}", points.len());
 }
