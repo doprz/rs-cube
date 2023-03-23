@@ -28,6 +28,15 @@ struct AxesLuminance {
     c: (f32, f32),
 }
 
+enum Axes {
+    AFront,
+    ABack,
+    BFront,
+    BBack,
+    CFront,
+    CBack,
+}
+
 const FPS_LIMIT: f32 = 60.0;
 const FRAME_DURATION_MICRO: f32 = 1_000_000.0 / (if FPS_LIMIT != 0.0 { FPS_LIMIT } else { 1.0 });
 
@@ -75,7 +84,8 @@ fn update_buffers<'a>(
     zbuffer: &mut [f32],
     cbuffer: &mut [&'a str],
     trig_values: &[f32],
-    char_color: &'a str,
+    char_color: bool,
+    axes: Axes,
     luminance: f32,
 ) {
     assert!(zbuffer.len() == buffer.len() && cbuffer.len() == buffer.len());
@@ -115,7 +125,18 @@ fn update_buffers<'a>(
     if index < index_limit {
         if ooz > zbuffer[index] {
             zbuffer[index] = ooz;
-            cbuffer[index] = char_color;
+            cbuffer[index] = if char_color {
+                match axes {
+                    Axes::AFront => ANSI_escape_code::color::YELLOW,
+                    Axes::ABack => ANSI_escape_code::color::WHITE,
+                    Axes::BFront => ANSI_escape_code::color::GREEN,
+                    Axes::BBack => ANSI_escape_code::color::BLUE,
+                    Axes::CFront => ANSI_escape_code::color::BOLD_RED,
+                    Axes::CBack => ANSI_escape_code::color::RED,
+                }
+            } else {
+                GRID_LINE_COLOR
+            };
             buffer[index] = ".,-~:;=!*#$@".as_bytes()
                 [if luminance > 0.0 { luminance_index } else { 0 }]
                 as char;
@@ -127,7 +148,8 @@ fn update_buffers<'a>(
 // fn init(points: &mut Vec<Point3D>, size: usize, width: usize) {
 fn init(
     points: &mut Vec<Point3D>,
-    points_color: &mut Vec<&str>,
+    // points_color: &mut Vec<&str>,
+    points_color: &mut Vec<bool>,
     points_axis_range: &mut PointsAxisRange,
     spacing: f32,
 ) {
@@ -145,28 +167,28 @@ fn init(
                 points.push(Point3D { x: i, y: j, z: k });
                 points.push(Point3D { x: i, y: j, z: -k });
 
-                let mut char_color1: &str = ANSI_escape_code::color::YELLOW;
-                let mut char_color2: &str = ANSI_escape_code::color::WHITE;
+                let mut char_color1: bool = true;
+                let mut char_color2: bool = true;
                 if i > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING
                     && i < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING
                 {
-                    char_color1 = GRID_LINE_COLOR;
-                    char_color2 = GRID_LINE_COLOR;
+                    char_color1 = false;
+                    char_color2 = false;
                 } else if i > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING
                     && i < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING
                 {
-                    char_color1 = GRID_LINE_COLOR;
-                    char_color2 = GRID_LINE_COLOR;
+                    char_color1 = false;
+                    char_color2 = false;
                 } else if j > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING
                     && j < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING
                 {
-                    char_color1 = GRID_LINE_COLOR;
-                    char_color2 = GRID_LINE_COLOR;
+                    char_color1 = false;
+                    char_color2 = false;
                 } else if j > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING
                     && j < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING
                 {
-                    char_color1 = GRID_LINE_COLOR;
-                    char_color2 = GRID_LINE_COLOR;
+                    char_color1 = false;
+                    char_color2 = false;
                 }
 
                 points_color.push(char_color1);
@@ -193,28 +215,28 @@ fn init(
                 points.push(Point3D { x: i, y: j, z: k });
                 points.push(Point3D { x: -i, y: j, z: k });
 
-                let mut char_color1: &str = ANSI_escape_code::color::GREEN;
-                let mut char_color2: &str = ANSI_escape_code::color::BLUE;
+                let mut char_color1: bool = true;
+                let mut char_color2: bool = true;
                 if j > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING
                     && j < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING
                 {
-                    char_color1 = GRID_LINE_COLOR;
-                    char_color2 = GRID_LINE_COLOR;
+                    char_color1 = false;
+                    char_color2 = false;
                 } else if j > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING
                     && j < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING
                 {
-                    char_color1 = GRID_LINE_COLOR;
-                    char_color2 = GRID_LINE_COLOR;
+                    char_color1 = false;
+                    char_color2 = false;
                 } else if k > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING
                     && k < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING
                 {
-                    char_color1 = GRID_LINE_COLOR;
-                    char_color2 = GRID_LINE_COLOR;
+                    char_color1 = false;
+                    char_color2 = false;
                 } else if k > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING
                     && k < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING
                 {
-                    char_color1 = GRID_LINE_COLOR;
-                    char_color2 = GRID_LINE_COLOR;
+                    char_color1 = false;
+                    char_color2 = false;
                 }
 
                 points_color.push(char_color1);
@@ -240,28 +262,28 @@ fn init(
                 points.push(Point3D { x: i, y: j, z: k });
                 points.push(Point3D { x: i, y: -j, z: k });
 
-                let mut char_color1: &str = ANSI_escape_code::color::BOLD_RED;
-                let mut char_color2: &str = ANSI_escape_code::color::RED;
+                let mut char_color1: bool = true;
+                let mut char_color2: bool = true;
                 if k > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING
                     && k < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING
                 {
-                    char_color1 = GRID_LINE_COLOR;
-                    char_color2 = GRID_LINE_COLOR;
+                    char_color1 = false;
+                    char_color2 = false;
                 } else if k > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING
                     && k < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING
                 {
-                    char_color1 = GRID_LINE_COLOR;
-                    char_color2 = GRID_LINE_COLOR;
+                    char_color1 = false;
+                    char_color2 = false;
                 } else if i > (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) - GRID_SPACING
                     && i < (-FRAC_CUBE_SIZE_2 + FRAC_CUBE_SIZE_3) + GRID_SPACING
                 {
-                    char_color1 = GRID_LINE_COLOR;
-                    char_color2 = GRID_LINE_COLOR;
+                    char_color1 = false;
+                    char_color2 = false;
                 } else if i > (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) - GRID_SPACING
                     && i < (FRAC_CUBE_SIZE_2 - FRAC_CUBE_SIZE_3) + GRID_SPACING
                 {
-                    char_color1 = GRID_LINE_COLOR;
-                    char_color2 = GRID_LINE_COLOR;
+                    char_color1 = false;
+                    char_color2 = false;
                 }
 
                 points_color.push(char_color1);
@@ -438,7 +460,7 @@ fn render_frame<'a>(
     width: u16,
     height: u16,
     points: &[Point3D],
-    points_color: &[&'a str],
+    points_color: &[bool],
     points_axis_range: &PointsAxisRange,
     buffer: &mut [char],
     buffer_prev: &mut [char],
@@ -472,23 +494,23 @@ fn render_frame<'a>(
     for index in 0..points.len() {
         let point = &points[index];
         let color = points_color[index];
-        let luminance = if index < points_axis_range.a {
+        let (axes, luminance) = if index < points_axis_range.a {
             if index & 1 == 0 {
-                axes_luminance.a.0
+                (Axes::AFront, axes_luminance.a.0)
             } else {
-                axes_luminance.a.1
+                (Axes::ABack, axes_luminance.a.1)
             }
         } else if index < points_axis_range.b {
             if index & 1 == 0 {
-                axes_luminance.b.0
+                (Axes::BFront, axes_luminance.b.0)
             } else {
-                axes_luminance.b.1
+                (Axes::BBack, axes_luminance.b.1)
             }
         } else {
             if index & 1 == 0 {
-                axes_luminance.c.0
+                (Axes::CFront, axes_luminance.c.0)
             } else {
-                axes_luminance.c.1
+                (Axes::CBack, axes_luminance.c.1)
             }
         };
         update_buffers(
@@ -502,6 +524,7 @@ fn render_frame<'a>(
             cbuffer,
             trig_values,
             color,
+            axes,
             luminance,
         );
     }
@@ -591,7 +614,6 @@ fn main() {
 
     let stdout = io::stdout(); // get the global stdout entity
                                // optional: wrap that handle in a buffer and aquire a lock on it
-                               // let mut handle = io::BufWriter::new(stdout.lock());
     let mut handle = io::BufWriter::with_capacity((width * height * 3).into(), stdout.lock());
 
     let mut buffer: Vec<char> = vec![' '; (width * height).into()];
@@ -615,7 +637,7 @@ fn main() {
 
     let points_size = ((CUBE_SIZE * CUBE_SIZE) / spacing).round() as usize;
     let mut points: Vec<Point3D> = Vec::with_capacity(points_size);
-    let mut points_color: Vec<&str> = Vec::with_capacity(points_size);
+    let mut points_color: Vec<bool> = Vec::with_capacity(points_size);
     let mut points_axis_range = PointsAxisRange { a: 0, b: 0, c: 0 };
 
     let light_source = Vector3f {
