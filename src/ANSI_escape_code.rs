@@ -9,7 +9,7 @@ macro_rules! ANSI_escape_code {
                 write!(f, $value)
             }
         }
-    };
+    }
 }
 
 // Cursor Functions
