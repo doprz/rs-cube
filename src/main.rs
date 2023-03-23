@@ -1,6 +1,6 @@
 mod ANSI_escape_code;
 
-use libc::{ioctl, winsize, STDOUT_FILENO, TIOCGWINSZ};
+use libc::{ioctl, winsize, STDOUT_FILENO, TIOCGWINSZ, signal, SIGINT};
 use std::io::{self, Write};
 use std::time::{Duration, Instant};
 
@@ -37,8 +37,8 @@ enum Axes {
     CBack,
 }
 
-const FPS_LIMIT: f32 = 60.0;
-const FRAME_DURATION_MICRO: f32 = 1_000_000.0 / (if FPS_LIMIT != 0.0 { FPS_LIMIT } else { 1.0 });
+const FPS_LIMIT: u32 = 60;
+const FRAME_DURATION_MICRO: u32 = 1_000_000 / (if FPS_LIMIT != 0 { FPS_LIMIT } else { 1 });
 
 const CUBE_SIZE: f32 = 1.0; // Unit Cube
 const FRAC_CUBE_SIZE_2: f32 = CUBE_SIZE / 2.0;
@@ -590,9 +590,16 @@ fn handle_exit() {
     print!("{}", ANSI_escape_code::DisableAltBuffer);
     print!("{}", ANSI_escape_code::color::RESET);
     print!("{}", ANSI_escape_code::CursorVisible);
+
+    // println!("SIGINT called");
+    // std::process::exit(SIGINT);
 }
 
 fn main() {
+    // unsafe {
+    //     signal(SIGINT, handle_exit as usize);
+    // }
+
     print!("{}", ANSI_escape_code::EnableAltBuffer);
     print!("{}", ANSI_escape_code::EraseScreen);
     print!("{}", ANSI_escape_code::CursorInvisible);
@@ -651,7 +658,7 @@ fn main() {
         z: -1.0,
     };
 
-    let total_frames = 1_000;
+    let total_frames = 100;
     let mut frame_times: Vec<u128> = Vec::with_capacity(total_frames);
 
     let mut a: f32 = -std::f32::consts::FRAC_PI_2; // Axis facing the screen (z-axis)
@@ -742,6 +749,15 @@ fn main() {
         // let sleep_dur = std::time::Duration::from_millis(200);
         // std::thread::sleep(sleep_dur);
 
+        {
+            let us_duration = start.elapsed().as_micros();
+            if FPS_LIMIT != 0  && us_duration < FRAME_DURATION_MICRO.into() {
+                let diff = FRAME_DURATION_MICRO as u128 - us_duration;
+                let sleep_dur = std::time::Duration::from_micros(diff.try_into().unwrap());
+                std::thread::sleep(sleep_dur);
+            }
+        }
+
         let us_duration = start.elapsed().as_micros();
         let ms_duration = us_duration as f64 / 1000.0;
         let fps: f64 = 1_000_000.0 / (us_duration as f64);
@@ -774,9 +790,6 @@ fn main() {
         )
         .unwrap();
         handle.flush().expect("Error flushing handle");
-
-        // let sleep_dur = std::time::Duration::from_millis(25);
-        // std::thread::sleep(sleep_dur);
     }
 
     handle_exit();
