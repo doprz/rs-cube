@@ -1,8 +1,7 @@
-mod ANSI_escape_code;
+mod ansi_escape_code;
 
 use libc::{ioctl, winsize, STDOUT_FILENO, TIOCGWINSZ, signal, SIGINT};
 use std::io::{self, Write};
-use std::time::{Duration, Instant};
 
 struct Point3D {
     x: f32,
@@ -37,7 +36,7 @@ enum Axes {
     CBack,
 }
 
-const FPS_LIMIT: u32 = 60;
+const FPS_LIMIT: u32 = 0;
 const FRAME_DURATION_MICRO: u32 = 1_000_000 / (if FPS_LIMIT != 0 { FPS_LIMIT } else { 1 });
 
 const CUBE_SIZE: f32 = 1.0; // Unit Cube
@@ -46,7 +45,7 @@ const FRAC_CUBE_SIZE_3: f32 = CUBE_SIZE / 3.0;
 const FRAC_CUBE_SIZE_4: f32 = CUBE_SIZE / 4.0;
 
 const GRID_SPACING: f32 = 0.04;
-const GRID_LINE_COLOR: &str = ANSI_escape_code::color::BLACK;
+const GRID_LINE_COLOR: &str = ansi_escape_code::color::BLACK;
 
 const K2: f32 = 10.0;
 
@@ -122,25 +121,23 @@ fn update_buffers<'a>(
     // else if luminance < 0, then the plane is facing away from the light source
     // else if luminance = 0, then the plane and the light source are perpendicular
     let luminance_index: usize = (luminance * 11.0) as usize;
-    if index < index_limit {
-        if ooz > zbuffer[index] {
-            zbuffer[index] = ooz;
-            cbuffer[index] = if char_color {
-                match axes {
-                    Axes::AFront => ANSI_escape_code::color::YELLOW,
-                    Axes::ABack => ANSI_escape_code::color::WHITE,
-                    Axes::BFront => ANSI_escape_code::color::GREEN,
-                    Axes::BBack => ANSI_escape_code::color::BLUE,
-                    Axes::CFront => ANSI_escape_code::color::BOLD_RED,
-                    Axes::CBack => ANSI_escape_code::color::RED,
-                }
-            } else {
-                GRID_LINE_COLOR
-            };
-            buffer[index] = ".,-~:;=!*#$@".as_bytes()
-                [if luminance > 0.0 { luminance_index } else { 0 }]
-                as char;
-        }
+    if index < index_limit && ooz > zbuffer[index] {
+        zbuffer[index] = ooz;
+        cbuffer[index] = if char_color {
+            match axes {
+                Axes::AFront => ansi_escape_code::color::YELLOW,
+                Axes::ABack => ansi_escape_code::color::WHITE,
+                Axes::BFront => ansi_escape_code::color::GREEN,
+                Axes::BBack => ansi_escape_code::color::BLUE,
+                Axes::CFront => ansi_escape_code::color::BOLD_RED,
+                Axes::CBack => ansi_escape_code::color::RED,
+            }
+        } else {
+            GRID_LINE_COLOR
+        };
+        buffer[index] = ".,-~:;=!*#$@".as_bytes()
+            [if luminance > 0.0 { luminance_index } else { 0 }]
+            as char;
     }
 }
 
@@ -474,7 +471,7 @@ fn render_frame<'a>(
     cbuffer_prev.copy_from_slice(cbuffer);
 
     buffer.fill(' ');
-    cbuffer.fill(ANSI_escape_code::color::RESET);
+    cbuffer.fill(ansi_escape_code::color::RESET);
     zbuffer.fill(0.0);
 
     let points_color = &points_color[..points.len()];
@@ -483,9 +480,9 @@ fn render_frame<'a>(
     write!(
         handle,
         "{}{}{}\r",
-        ANSI_escape_code::set_cursor_pos(3, 1 + 24),
-        ANSI_escape_code::color::RESET,
-        ANSI_escape_code::EraseLineStartToCursor
+        ansi_escape_code::set_cursor_pos(3, 1 + 24),
+        ansi_escape_code::color::RESET,
+        ansi_escape_code::EraseLineStartToCursor
     )
     .unwrap();
     write!(handle, "Points: {}", points.len()).unwrap();
@@ -531,7 +528,7 @@ fn render_frame<'a>(
 
     // write!(handle, "{}", ANSI_escape_code::SetCursorHome).unwrap();
 
-    let mut prev_set_color: &str = ANSI_escape_code::color::RESET;
+    let mut prev_set_color: &str = ansi_escape_code::color::RESET;
 
     // for (index, val) in buffer.iter().enumerate() {
     for index in 0..buffer.len() {
@@ -549,7 +546,7 @@ fn render_frame<'a>(
             write!(
                 handle,
                 "{}{}",
-                ANSI_escape_code::set_cursor_pos(y + 1, x + 1),
+                ansi_escape_code::set_cursor_pos(y + 1, x + 1),
                 val
             )
             .unwrap();
@@ -557,7 +554,7 @@ fn render_frame<'a>(
             write!(
                 handle,
                 "{}{}{}",
-                ANSI_escape_code::set_cursor_pos(y + 1, x + 1),
+                ansi_escape_code::set_cursor_pos(y + 1, x + 1),
                 color,
                 val
             )
@@ -586,10 +583,10 @@ fn get_term_size() -> Result<(u16, u16), &'static str> {
 }
 
 fn handle_exit() {
-    print!("{}", ANSI_escape_code::EraseScreen);
-    print!("{}", ANSI_escape_code::DisableAltBuffer);
-    print!("{}", ANSI_escape_code::color::RESET);
-    print!("{}", ANSI_escape_code::CursorVisible);
+    print!("{}", ansi_escape_code::EraseScreen);
+    print!("{}", ansi_escape_code::DisableAltBuffer);
+    print!("{}", ansi_escape_code::color::RESET);
+    print!("{}", ansi_escape_code::CursorVisible);
 
     // println!("SIGINT called");
     // std::process::exit(SIGINT);
@@ -600,9 +597,9 @@ fn main() {
     //     signal(SIGINT, handle_exit as usize);
     // }
 
-    print!("{}", ANSI_escape_code::EnableAltBuffer);
-    print!("{}", ANSI_escape_code::EraseScreen);
-    print!("{}", ANSI_escape_code::CursorInvisible);
+    print!("{}", ansi_escape_code::EnableAltBuffer);
+    print!("{}", ansi_escape_code::EraseScreen);
+    print!("{}", ansi_escape_code::CursorInvisible);
 
     let mut width: u16 = 100;
     let mut height: u16 = 50;
@@ -626,8 +623,8 @@ fn main() {
     let mut buffer: Vec<char> = vec![' '; (width * height).into()];
     let mut buffer_prev: Vec<char> = vec![' '; (width * height).into()];
 
-    let mut cbuffer: Vec<&str> = vec![ANSI_escape_code::color::RESET; (width * height).into()];
-    let mut cbuffer_prev: Vec<&str> = vec![ANSI_escape_code::color::RESET; (width * height).into()];
+    let mut cbuffer: Vec<&str> = vec![ansi_escape_code::color::RESET; (width * height).into()];
+    let mut cbuffer_prev: Vec<&str> = vec![ansi_escape_code::color::RESET; (width * height).into()];
 
     let mut zbuffer: Vec<f32> = vec![0.0; (width * height).into()];
 
@@ -640,7 +637,7 @@ fn main() {
 
     let mut spacing: f32 = 3.0 / width as f32;
     let mut k1: f32 =
-        ((width as f32) * (K2 as f32) * 3.0) / (8.0 * ((3 as f32).sqrt() * CUBE_SIZE as f32));
+        ((width as f32) * K2 * 3.0) / (8.0 * (3_f32.sqrt() * CUBE_SIZE));
 
     let points_size = ((CUBE_SIZE * CUBE_SIZE) / spacing).round() as usize;
     let mut points: Vec<Point3D> = Vec::with_capacity(points_size);
@@ -658,7 +655,7 @@ fn main() {
         z: -1.0,
     };
 
-    let total_frames = 100;
+    let total_frames = 1_000;
     let mut frame_times: Vec<u128> = Vec::with_capacity(total_frames);
 
     let mut a: f32 = -std::f32::consts::FRAC_PI_2; // Axis facing the screen (z-axis)
@@ -708,7 +705,7 @@ fn main() {
 
     // loop {
     for _ in 0..total_frames {
-        let start = Instant::now();
+        let start = std::time::Instant::now();
         a += 0.03;
         b += 0.02;
         c += 0.01;
@@ -767,9 +764,9 @@ fn main() {
         write!(
             handle,
             "{}{}{}\r",
-            ANSI_escape_code::set_cursor_pos(1, 1 + 24),
-            ANSI_escape_code::color::RESET,
-            ANSI_escape_code::EraseLineStartToCursor
+            ansi_escape_code::set_cursor_pos(1, 1 + 24),
+            ansi_escape_code::color::RESET,
+            ansi_escape_code::EraseLineStartToCursor
         )
         .unwrap();
         write!(handle, "{fps:>7.2}fps", fps = fps).unwrap();
@@ -777,9 +774,9 @@ fn main() {
         write!(
             handle,
             "{}{}{}\r",
-            ANSI_escape_code::set_cursor_pos(2, 1 + 24),
-            ANSI_escape_code::color::RESET,
-            ANSI_escape_code::EraseLineStartToCursor
+            ansi_escape_code::set_cursor_pos(2, 1 + 24),
+            ansi_escape_code::color::RESET,
+            ansi_escape_code::EraseLineStartToCursor
         )
         .unwrap();
         write!(
