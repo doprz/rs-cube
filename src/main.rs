@@ -49,6 +49,7 @@ const GRID_LINE_COLOR: &str = ansi_escape_code::color::BLACK;
 
 const K2: f32 = 10.0;
 
+#[inline(never)]
 fn get_vector_mag(vec: &Vector3f) -> f32 {
     let x: f32 = vec.x;
     let y: f32 = vec.y;
@@ -57,6 +58,7 @@ fn get_vector_mag(vec: &Vector3f) -> f32 {
     (x * x + y * y + z * z).sqrt()
 }
 
+#[inline(never)]
 fn norm_vector(vec: &mut Vector3f) {
     let x: f32 = vec.x;
     let y: f32 = vec.y;
@@ -73,6 +75,7 @@ fn norm_vector(vec: &mut Vector3f) {
     }
 }
 
+#[inline(never)]
 fn update_buffers<'a>(
     i: f32,
     j: f32,
@@ -87,7 +90,7 @@ fn update_buffers<'a>(
     axes: Axes,
     luminance: f32,
 ) {
-    assert!(zbuffer.len() == buffer.len() && cbuffer.len() == buffer.len());
+    assert!(zbuffer.len() == buffer.len() && cbuffer.len() == buffer.len() && luminance <= 1.0);
     let trig_values = &trig_values[..6];
 
     let sin_a = trig_values[0];
@@ -99,12 +102,15 @@ fn update_buffers<'a>(
     let sin_c = trig_values[4];
     let cos_c = trig_values[5];
 
+    let cos_a_sin_b = cos_a * sin_b;
+    let sin_a_sin_b = sin_a * sin_b;
+
     let x: f32 = cos_a * cos_b * j
-        + (cos_a * sin_b * sin_c - sin_a * cos_c) * i
-        + (cos_a * sin_b * cos_c + sin_a * sin_c) * k;
+        + (cos_a_sin_b * sin_c - sin_a * cos_c) * i
+        + (cos_a_sin_b * cos_c + sin_a * sin_c) * k;
     let y: f32 = sin_a * cos_b * j
-        + (sin_a * sin_b * sin_c + cos_a * cos_c) * i
-        + (sin_a * sin_b * cos_c - cos_a * sin_c) * k;
+        + (sin_a_sin_b * sin_c + cos_a * cos_c) * i
+        + (sin_a_sin_b * cos_c - cos_a * sin_c) * k;
     let z: f32 = -j * sin_b + i * cos_b * sin_c + k * cos_b * cos_c + K2;
 
     let ooz: f32 = 1.0 / z; // "One over z"
@@ -143,6 +149,7 @@ fn update_buffers<'a>(
 
 // fn init(points: &mut [Point3D], width: usize) {
 // fn init(points: &mut Vec<Point3D>, size: usize, width: usize) {
+#[inline(never)]
 fn init(
     points: &mut Vec<Point3D>,
     // points_color: &mut Vec<&str>,
@@ -294,6 +301,7 @@ fn init(
     }
 }
 
+#[inline(never)]
 fn get_axes_luminance(trig_values: &[f32], rotated_light_source: &Vector3f) -> AxesLuminance {
     let trig_values = &trig_values[..6];
 
@@ -319,13 +327,19 @@ fn get_axes_luminance(trig_values: &[f32], rotated_light_source: &Vector3f) -> A
         z: -CUBE_SIZE,
     };
 
+    let x_arg1 = cos_a * sin_b * sin_c - sin_a * cos_c;
+    let x_arg2 = cos_a * sin_b * cos_c + sin_a * sin_c;
+
+    let y_arg1 = sin_a * sin_b * sin_c + cos_a * cos_c;
+    let y_arg2 = sin_a * sin_b * cos_c - cos_a * sin_c;
+
     let mut a_rotated_surface_normal_front = Vector3f {
         x: cos_a * cos_b * a_surface_normal_front.x
-            + (cos_a * sin_b * sin_c - sin_a * cos_c) * a_surface_normal_front.y
-            + (cos_a * sin_b * cos_c + sin_a * sin_c) * a_surface_normal_front.z,
+            + (x_arg1) * a_surface_normal_front.y
+            + (x_arg2) * a_surface_normal_front.z,
         y: sin_a * cos_b * a_surface_normal_front.x
-            + (sin_a * sin_b * sin_c + cos_a * cos_c) * a_surface_normal_front.y
-            + (sin_a * sin_b * cos_c - cos_a * sin_c) * a_surface_normal_front.z,
+            + (y_arg1) * a_surface_normal_front.y
+            + (y_arg2) * a_surface_normal_front.z,
         z: -a_surface_normal_front.x * sin_b
             + a_surface_normal_front.y * cos_b * sin_c
             + a_surface_normal_front.z * cos_b * cos_c,
@@ -334,11 +348,11 @@ fn get_axes_luminance(trig_values: &[f32], rotated_light_source: &Vector3f) -> A
 
     let mut a_rotated_surface_normal_back = Vector3f {
         x: cos_a * cos_b * a_surface_normal_back.x
-            + (cos_a * sin_b * sin_c - sin_a * cos_c) * a_surface_normal_back.y
-            + (cos_a * sin_b * cos_c + sin_a * sin_c) * a_surface_normal_back.z,
+            + (x_arg1) * a_surface_normal_back.y
+            + (x_arg2) * a_surface_normal_back.z,
         y: sin_a * cos_b * a_surface_normal_back.x
-            + (sin_a * sin_b * sin_c + cos_a * cos_c) * a_surface_normal_back.y
-            + (sin_a * sin_b * cos_c - cos_a * sin_c) * a_surface_normal_back.z,
+            + (y_arg1) * a_surface_normal_back.y
+            + (y_arg2) * a_surface_normal_back.z,
         z: -a_surface_normal_back.x * sin_b
             + a_surface_normal_back.y * cos_b * sin_c
             + a_surface_normal_back.z * cos_b * cos_c,
@@ -367,11 +381,11 @@ fn get_axes_luminance(trig_values: &[f32], rotated_light_source: &Vector3f) -> A
 
     let mut b_rotated_surface_normal_front = Vector3f {
         x: cos_a * cos_b * b_surface_normal_front.x
-            + (cos_a * sin_b * sin_c - sin_a * cos_c) * b_surface_normal_front.y
-            + (cos_a * sin_b * cos_c + sin_a * sin_c) * b_surface_normal_front.z,
+            + (x_arg1) * b_surface_normal_front.y
+            + (x_arg2) * b_surface_normal_front.z,
         y: sin_a * cos_b * b_surface_normal_front.x
-            + (sin_a * sin_b * sin_c + cos_a * cos_c) * b_surface_normal_front.y
-            + (sin_a * sin_b * cos_c - cos_a * sin_c) * b_surface_normal_front.z,
+            + (y_arg1) * b_surface_normal_front.y
+            + (y_arg2) * b_surface_normal_front.z,
         z: -b_surface_normal_front.x * sin_b
             + b_surface_normal_front.y * cos_b * sin_c
             + b_surface_normal_front.z * cos_b * cos_c,
@@ -380,11 +394,11 @@ fn get_axes_luminance(trig_values: &[f32], rotated_light_source: &Vector3f) -> A
 
     let mut b_rotated_surface_normal_back = Vector3f {
         x: cos_a * cos_b * b_surface_normal_back.x
-            + (cos_a * sin_b * sin_c - sin_a * cos_c) * b_surface_normal_back.y
-            + (cos_a * sin_b * cos_c + sin_a * sin_c) * b_surface_normal_back.z,
+            + (x_arg1) * b_surface_normal_back.y
+            + (x_arg2) * b_surface_normal_back.z,
         y: sin_a * cos_b * b_surface_normal_back.x
-            + (sin_a * sin_b * sin_c + cos_a * cos_c) * b_surface_normal_back.y
-            + (sin_a * sin_b * cos_c - cos_a * sin_c) * b_surface_normal_back.z,
+            + (y_arg1) * b_surface_normal_back.y
+            + (y_arg2) * b_surface_normal_back.z,
         z: -b_surface_normal_back.x * sin_b
             + b_surface_normal_back.y * cos_b * sin_c
             + b_surface_normal_back.z * cos_b * cos_c,
@@ -413,11 +427,11 @@ fn get_axes_luminance(trig_values: &[f32], rotated_light_source: &Vector3f) -> A
 
     let mut c_rotated_surface_normal_front = Vector3f {
         x: cos_a * cos_b * c_surface_normal_front.x
-            + (cos_a * sin_b * sin_c - sin_a * cos_c) * c_surface_normal_front.y
-            + (cos_a * sin_b * cos_c + sin_a * sin_c) * c_surface_normal_front.z,
+            + (x_arg1) * c_surface_normal_front.y
+            + (x_arg2) * c_surface_normal_front.z,
         y: sin_a * cos_b * c_surface_normal_front.x
-            + (sin_a * sin_b * sin_c + cos_a * cos_c) * c_surface_normal_front.y
-            + (sin_a * sin_b * cos_c - cos_a * sin_c) * c_surface_normal_front.z,
+            + (y_arg1) * c_surface_normal_front.y
+            + (y_arg2) * c_surface_normal_front.z,
         z: -c_surface_normal_front.x * sin_b
             + c_surface_normal_front.y * cos_b * sin_c
             + c_surface_normal_front.z * cos_b * cos_c,
@@ -426,11 +440,11 @@ fn get_axes_luminance(trig_values: &[f32], rotated_light_source: &Vector3f) -> A
 
     let mut c_rotated_surface_normal_back = Vector3f {
         x: cos_a * cos_b * c_surface_normal_back.x
-            + (cos_a * sin_b * sin_c - sin_a * cos_c) * c_surface_normal_back.y
-            + (cos_a * sin_b * cos_c + sin_a * sin_c) * c_surface_normal_back.z,
+            + (x_arg1) * c_surface_normal_back.y
+            + (x_arg2) * c_surface_normal_back.z,
         y: sin_a * cos_b * c_surface_normal_back.x
-            + (sin_a * sin_b * sin_c + cos_a * cos_c) * c_surface_normal_back.y
-            + (sin_a * sin_b * cos_c - cos_a * sin_c) * c_surface_normal_back.z,
+            + (y_arg1) * c_surface_normal_back.y
+            + (y_arg2) * c_surface_normal_back.z,
         z: -c_surface_normal_back.x * sin_b
             + c_surface_normal_back.y * cos_b * sin_c
             + c_surface_normal_back.z * cos_b * cos_c,
@@ -528,13 +542,16 @@ fn render_frame<'a>(
 
     // write!(handle, "{}", ANSI_escape_code::SetCursorHome).unwrap();
 
+    let l_cbuffer = &cbuffer[..buffer.len()];
+    let l_buffer_prev = &buffer_prev[..buffer.len()];
+    let l_cbuffer_prev = &cbuffer_prev[..buffer.len()];
     let mut prev_set_color: &str = ansi_escape_code::color::RESET;
 
     // for (index, val) in buffer.iter().enumerate() {
     for index in 0..buffer.len() {
         let val = buffer[index];
-        let color = cbuffer[index];
-        if (val == buffer_prev[index]) && (color == cbuffer_prev[index]) {
+        let color = l_cbuffer[index];
+        if (val == l_buffer_prev[index]) && (color == l_cbuffer_prev[index]) {
             continue;
         }
 
@@ -592,6 +609,7 @@ fn handle_exit() {
     // std::process::exit(SIGINT);
 }
 
+#[inline(never)]
 fn main() {
     // unsafe {
     //     signal(SIGINT, handle_exit as usize);
