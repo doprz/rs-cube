@@ -494,7 +494,7 @@ fn render_frame<'a>(
     write!(
         handle,
         "{}{}{}\r",
-        ansi_escape_code::set_cursor_pos(3, 1 + 24),
+        ansi_escape_code::SetCursorPos(3, 1 + 24),
         ansi_escape_code::color::RESET,
         ansi_escape_code::EraseLineStartToCursor
     )
@@ -555,15 +555,15 @@ fn render_frame<'a>(
             continue;
         }
 
-        let x: u32 = (index % width as usize).try_into().unwrap();
-        let y: u32 = (index / width as usize).try_into().unwrap();
+        let x: u16 = (index % width as usize).try_into().unwrap();
+        let y: u16 = (index / width as usize).try_into().unwrap();
 
         // Move cursor, add color, and print char
         if color == prev_set_color {
             write!(
                 handle,
                 "{}{}",
-                ansi_escape_code::set_cursor_pos(y + 1, x + 1),
+                ansi_escape_code::SetCursorPos(y + 1, x + 1),
                 val
             )
             .unwrap();
@@ -571,7 +571,7 @@ fn render_frame<'a>(
             write!(
                 handle,
                 "{}{}{}",
-                ansi_escape_code::set_cursor_pos(y + 1, x + 1),
+                ansi_escape_code::SetCursorPos(y + 1, x + 1),
                 color,
                 val
             )
@@ -673,7 +673,7 @@ fn main() {
         z: -1.0,
     };
 
-    let total_frames = 1_000;
+    let total_frames = 10;
     let mut frame_times: Vec<u128> = Vec::with_capacity(total_frames);
 
     let mut a: f32 = -std::f32::consts::FRAC_PI_2; // Axis facing the screen (z-axis)
@@ -782,7 +782,7 @@ fn main() {
         write!(
             handle,
             "{}{}{}\r",
-            ansi_escape_code::set_cursor_pos(1, 1 + 24),
+            ansi_escape_code::SetCursorPos(1, 1 + 24),
             ansi_escape_code::color::RESET,
             ansi_escape_code::EraseLineStartToCursor
         )
@@ -792,7 +792,7 @@ fn main() {
         write!(
             handle,
             "{}{}{}\r",
-            ansi_escape_code::set_cursor_pos(2, 1 + 24),
+            ansi_escape_code::SetCursorPos(2, 1 + 24),
             ansi_escape_code::color::RESET,
             ansi_escape_code::EraseLineStartToCursor
         )

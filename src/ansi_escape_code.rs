@@ -26,15 +26,23 @@ ANSI_escape_code!(EraseLineStartToCursor, "\x1B[1K");
 ANSI_escape_code!(EnableAltBuffer, "\x1B[?1049h");
 ANSI_escape_code!(DisableAltBuffer, "\x1B[?1049l");
 
+pub struct SetCursorPos(pub u16, pub u16);
+
+impl fmt::Display for SetCursorPos {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "\x1B[{};{}H", self.0, self.1)
+    }
+}
+
 // Cursor Functions
 // pub const SET_CURSOR_HOME: &str = "\x1B[H";
 // pub const CURSOR_VISIBLE: &str = "\x1B[?25h";
 // pub const CURSOR_INVISIBLE: &str = "\x1B[?25l";
 
 // Starts on row = 1, col = 1
-pub fn set_cursor_pos(row: u32, col: u32) -> String {
-    format!("\x1B[{};{}H", row, col)
-}
+// pub fn set_cursor_pos(row: u32, col: u32) -> String {
+//     format!("\x1B[{};{}H", row, col)
+// }
 // Erase Functions
 // pub const ERASE_SCREEN: &str = "\x3B[2J";
 // pub const ERASE_CURRENT_LINE: &str = "\x1B[2K";
