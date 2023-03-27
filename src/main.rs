@@ -1,7 +1,8 @@
-mod ansi_escape_code;
-
+use clap::Parser;
 use libc::{ioctl, winsize, STDOUT_FILENO, TIOCGWINSZ, signal, SIGINT};
 use std::io::{self, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
+mod ansi_escape_code;
 
 struct Point3D {
     x: f32,
@@ -36,13 +37,11 @@ enum Axes {
     CBack,
 }
 
-const FPS_LIMIT: u32 = 0;
-const FRAME_DURATION_MICRO: u32 = 1_000_000 / (if FPS_LIMIT != 0 { FPS_LIMIT } else { 1 });
+static SIGINT_CALLED: AtomicBool = AtomicBool::new(false);
 
 const CUBE_SIZE: f32 = 1.0; // Unit Cube
 const FRAC_CUBE_SIZE_2: f32 = CUBE_SIZE / 2.0;
 const FRAC_CUBE_SIZE_3: f32 = CUBE_SIZE / 3.0;
-const FRAC_CUBE_SIZE_4: f32 = CUBE_SIZE / 4.0;
 
 const GRID_SPACING: f32 = 0.04;
 const GRID_LINE_COLOR: &str = ansi_escape_code::color::BLACK;
@@ -491,15 +490,15 @@ fn render_frame<'a>(
     let points_color = &points_color[..points.len()];
 
     let axes_luminance = get_axes_luminance(trig_values, rotated_light_source);
-    write!(
-        handle,
-        "{}{}{}\r",
-        ansi_escape_code::SetCursorPos(3, 1 + 24),
-        ansi_escape_code::color::RESET,
-        ansi_escape_code::EraseLineStartToCursor
-    )
-    .unwrap();
-    write!(handle, "Points: {}", points.len()).unwrap();
+    // write!(
+    //     handle,
+    //     "{}{}{}\r",
+    //     ansi_escape_code::SetCursorPos(3, 1 + 24),
+    //     ansi_escape_code::color::RESET,
+    //     ansi_escape_code::EraseLineStartToCursor
+    // )
+    // .unwrap();
+    // write!(handle, "Points: {}", points.len()).unwrap();
 
     // for (index, point) in points.iter().enumerate() {
     for index in 0..points.len() {
@@ -581,6 +580,17 @@ fn render_frame<'a>(
     }
 }
 
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+pub struct Args {
+    /// Enable debug info
+    #[arg(short, long, default_value_t = false)]
+    debug: bool,
+
+    #[arg(short, long, default_value_t = 60u32)]
+    fps_limit: u32,
+}
+
 fn get_term_size() -> Result<(u16, u16), &'static str> {
     let mut size = winsize {
         ws_row: 0,
@@ -604,16 +614,19 @@ fn handle_exit() {
     print!("{}", ansi_escape_code::DisableAltBuffer);
     print!("{}", ansi_escape_code::color::RESET);
     print!("{}", ansi_escape_code::CursorVisible);
+}
 
-    // println!("SIGINT called");
-    // std::process::exit(SIGINT);
+fn handle_sigint() {
+    SIGINT_CALLED.store(true, Ordering::Relaxed);
 }
 
 #[inline(never)]
 fn main() {
-    // unsafe {
-    //     signal(SIGINT, handle_exit as usize);
-    // }
+    unsafe {
+        signal(SIGINT, handle_sigint as usize);
+    }
+
+    let args = Args::parse();
 
     print!("{}", ansi_escape_code::EnableAltBuffer);
     print!("{}", ansi_escape_code::EraseScreen);
@@ -673,7 +686,7 @@ fn main() {
         z: -1.0,
     };
 
-    let total_frames = 10;
+    let total_frames = 10_000;
     let mut frame_times: Vec<u128> = Vec::with_capacity(total_frames);
 
     let mut a: f32 = -std::f32::consts::FRAC_PI_2; // Axis facing the screen (z-axis)
@@ -721,8 +734,7 @@ fn main() {
         spacing,
     );
 
-    // loop {
-    for _ in 0..total_frames {
+    while !SIGINT_CALLED.load(Ordering::Relaxed) {
         let start = std::time::Instant::now();
         a += 0.03;
         b += 0.02;
@@ -759,64 +771,75 @@ fn main() {
             &trig_values,
             &rotated_light_source,
         );
-        // handle.flush().expect("Error flushing handle");
-
-        // let sleep_dur = std::time::Duration::from_millis(200);
-        // std::thread::sleep(sleep_dur);
 
         {
             let us_duration = start.elapsed().as_micros();
-            if FPS_LIMIT != 0  && us_duration < FRAME_DURATION_MICRO.into() {
-                let diff = FRAME_DURATION_MICRO as u128 - us_duration;
+            let frame_duration_micro: u32 = 1_000_000 / (if args.fps_limit != 0 { args.fps_limit } else { 1 });
+            if args.fps_limit != 0  && us_duration < frame_duration_micro.into() {
+                let diff = frame_duration_micro as u128 - us_duration;
                 let sleep_dur = std::time::Duration::from_micros(diff.try_into().unwrap());
                 std::thread::sleep(sleep_dur);
             }
         }
 
-        let us_duration = start.elapsed().as_micros();
-        let ms_duration = us_duration as f64 / 1000.0;
-        let fps: f64 = 1_000_000.0 / (us_duration as f64);
+        if args.debug {
+            let us_duration = start.elapsed().as_micros();
+            let ms_duration = us_duration as f64 / 1000.0;
+            let fps: f64 = 1_000_000.0 / (us_duration as f64);
 
-        frame_times.push(us_duration);
+            frame_times.push(us_duration);
 
-        write!(
-            handle,
-            "{}{}{}\r",
-            ansi_escape_code::SetCursorPos(1, 1 + 24),
-            ansi_escape_code::color::RESET,
-            ansi_escape_code::EraseLineStartToCursor
-        )
-        .unwrap();
-        write!(handle, "{fps:>7.2}fps", fps = fps).unwrap();
+            write!(
+                handle,
+                "{}{}{}\r",
+                ansi_escape_code::SetCursorPos(1, 1 + 24),
+                ansi_escape_code::color::RESET,
+                ansi_escape_code::EraseLineStartToCursor
+                )
+                .unwrap();
+            write!(handle, "{fps:>7.2}fps", fps = fps).unwrap();
 
-        write!(
-            handle,
-            "{}{}{}\r",
-            ansi_escape_code::SetCursorPos(2, 1 + 24),
-            ansi_escape_code::color::RESET,
-            ansi_escape_code::EraseLineStartToCursor
-        )
-        .unwrap();
-        write!(
-            handle,
-            "{ms:>7.2}ms ({us:>7}us)",
-            ms = ms_duration,
-            us = us_duration
-        )
-        .unwrap();
+            write!(
+                handle,
+                "{}{}{}\r",
+                ansi_escape_code::SetCursorPos(2, 1 + 24),
+                ansi_escape_code::color::RESET,
+                ansi_escape_code::EraseLineStartToCursor
+                )
+                .unwrap();
+            write!(
+                handle,
+                "{ms:>7.2}ms ({us:>7}us)",
+                ms = ms_duration,
+                us = us_duration
+                )
+                .unwrap();
+        }
+
         handle.flush().expect("Error flushing handle");
     }
 
     handle_exit();
 
-    println!("Width: {} | Height: {}", width, height);
+    if args.debug {
+        println!("Width: {} | Height: {}", width, height);
 
-    let sum: u128 = frame_times.iter().sum();
-    let frames = frame_times.len();
-    let frame_avg = sum / frames as u128;
+        let sum: u128 = frame_times.iter().sum();
+        let frames = frame_times.len();
+        let frame_avg = if frames == 0 {
+            sum
+        } else {
+            sum / frames as u128
+        };
+        let fps_avg = if frame_avg == 0 {
+            0
+        } else {
+            1_000_000 / frame_avg
+        };
 
-    println!("Frame Average: {}us", frame_avg);
-    println!("FPS Average: {}", 1_000_000 / frame_avg);
+        println!("Frame Average: {}us", frame_avg);
+        println!("FPS Average: {}", fps_avg);
 
-    println!("Points: {}", points.len());
+        println!("Points: {}", points.len());
+    }
 }
