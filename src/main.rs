@@ -1,3 +1,6 @@
+// Copyright (c) 2023 doprz
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use clap::Parser;
 use libc::{ioctl, winsize, STDOUT_FILENO, TIOCGWINSZ, signal, SIGINT};
 use std::io::{self, Write};
