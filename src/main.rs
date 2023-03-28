@@ -2,7 +2,7 @@ use clap::Parser;
 use libc::{ioctl, winsize, STDOUT_FILENO, TIOCGWINSZ, signal, SIGINT};
 use std::io::{self, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
-mod ansi_escape_code;
+pub mod ansi_escape_code;
 
 struct Point3D {
     x: f32,
@@ -75,7 +75,7 @@ fn norm_vector(vec: &mut Vector3f) {
 }
 
 #[inline(never)]
-fn update_buffers<'a>(
+fn update_buffers(
     i: f32,
     j: f32,
     k: f32,
@@ -83,7 +83,7 @@ fn update_buffers<'a>(
     height: u16,
     buffer: &mut [char],
     zbuffer: &mut [f32],
-    cbuffer: &mut [&'a str],
+    cbuffer: &mut [&str],
     trig_values: &[f32],
     char_color: bool,
     axes: Axes,
@@ -146,12 +146,9 @@ fn update_buffers<'a>(
     }
 }
 
-// fn init(points: &mut [Point3D], width: usize) {
-// fn init(points: &mut Vec<Point3D>, size: usize, width: usize) {
 #[inline(never)]
 fn init(
     points: &mut Vec<Point3D>,
-    // points_color: &mut Vec<&str>,
     points_color: &mut Vec<bool>,
     points_axis_range: &mut PointsAxisRange,
     spacing: f32,
@@ -490,17 +487,7 @@ fn render_frame<'a>(
     let points_color = &points_color[..points.len()];
 
     let axes_luminance = get_axes_luminance(trig_values, rotated_light_source);
-    // write!(
-    //     handle,
-    //     "{}{}{}\r",
-    //     ansi_escape_code::SetCursorPos(3, 1 + 24),
-    //     ansi_escape_code::color::RESET,
-    //     ansi_escape_code::EraseLineStartToCursor
-    // )
-    // .unwrap();
-    // write!(handle, "Points: {}", points.len()).unwrap();
 
-    // for (index, point) in points.iter().enumerate() {
     for index in 0..points.len() {
         let point = &points[index];
         let color = points_color[index];
@@ -539,14 +526,11 @@ fn render_frame<'a>(
         );
     }
 
-    // write!(handle, "{}", ANSI_escape_code::SetCursorHome).unwrap();
-
     let l_cbuffer = &cbuffer[..buffer.len()];
     let l_buffer_prev = &buffer_prev[..buffer.len()];
     let l_cbuffer_prev = &cbuffer_prev[..buffer.len()];
     let mut prev_set_color: &str = ansi_escape_code::color::RESET;
 
-    // for (index, val) in buffer.iter().enumerate() {
     for index in 0..buffer.len() {
         let val = buffer[index];
         let color = l_cbuffer[index];
@@ -648,7 +632,7 @@ fn main() {
     }
 
     let stdout = io::stdout(); // get the global stdout entity
-                               // optional: wrap that handle in a buffer and aquire a lock on it
+    // wrap that handle in a buffer and aquire a lock on it
     let mut handle = io::BufWriter::with_capacity((width * height * 3).into(), stdout.lock());
 
     let mut buffer: Vec<char> = vec![' '; (width * height).into()];
@@ -666,9 +650,8 @@ fn main() {
             && cbuffer_prev.len() == buffer.len()
     );
 
-    let mut spacing: f32 = 3.0 / width as f32;
-    let mut k1: f32 =
-        ((width as f32) * K2 * 3.0) / (8.0 * (3_f32.sqrt() * CUBE_SIZE));
+    let spacing: f32 = 3.0 / width as f32;
+    let _k1: f32 = ((width as f32) * K2 * 3.0) / (8.0 * (3_f32.sqrt() * CUBE_SIZE));
 
     let points_size = ((CUBE_SIZE * CUBE_SIZE) / spacing).round() as usize;
     let mut points: Vec<Point3D> = Vec::with_capacity(points_size);
@@ -692,16 +675,6 @@ fn main() {
     let mut a: f32 = -std::f32::consts::FRAC_PI_2; // Axis facing the screen (z-axis)
     let mut b: f32 = -std::f32::consts::FRAC_PI_2; // Up / Down axis (y-axis)
     let mut c: f32 = std::f32::consts::FRAC_PI_2 + std::f32::consts::FRAC_PI_4; // Left / Right axis (x-axis)
-
-    let mut sin_a: f32 = a.sin();
-    let mut cos_a: f32 = a.cos();
-
-    let mut sin_b: f32 = b.sin();
-    let mut cos_b: f32 = b.cos();
-
-    let mut sin_c: f32 = c.sin();
-    let mut cos_c: f32 = c.cos();
-    let mut trig_values: Vec<f32> = vec![sin_a, cos_a, sin_b, cos_b, sin_c, cos_c];
 
     // Rotated Light Source
     let d: f32 = 0.0;
@@ -740,15 +713,15 @@ fn main() {
         b += 0.02;
         c += 0.01;
 
-        sin_a = a.sin();
-        cos_a = a.cos();
+        let sin_a: f32 = a.sin();
+        let cos_a: f32 = a.cos();
 
-        sin_b = b.sin();
-        cos_b = b.cos();
+        let sin_b: f32 = b.sin();
+        let cos_b: f32 = b.cos();
 
-        sin_c = c.sin();
-        cos_c = c.cos();
-        trig_values = [sin_a, cos_a, sin_b, cos_b, sin_c, cos_c].to_vec();
+        let sin_c: f32 = c.sin();
+        let cos_c: f32 = c.cos();
+        let trig_values: Vec<f32> = vec![sin_a, cos_a, sin_b, cos_b, sin_c, cos_c];
 
         assert!(
             zbuffer.len() == buffer.len()

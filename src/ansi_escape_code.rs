@@ -34,24 +34,6 @@ impl fmt::Display for SetCursorPos {
     }
 }
 
-// Cursor Functions
-// pub const SET_CURSOR_HOME: &str = "\x1B[H";
-// pub const CURSOR_VISIBLE: &str = "\x1B[?25h";
-// pub const CURSOR_INVISIBLE: &str = "\x1B[?25l";
-
-// Starts on row = 1, col = 1
-// pub fn set_cursor_pos(row: u32, col: u32) -> String {
-//     format!("\x1B[{};{}H", row, col)
-// }
-// Erase Functions
-// pub const ERASE_SCREEN: &str = "\x3B[2J";
-// pub const ERASE_CURRENT_LINE: &str = "\x1B[2K";
-// pub const ERASE_LINE_START_TO_CURSOR: &str = "\x1B[1K";
-
-// Common Private Modes
-// pub const ENABLE_ALT_BUFFER: &str = "\x1B[?1049h";
-// pub const DISABLE_ALT_BUFFER: &str = "\x1B[?1049l";
-
 pub mod color {
     // Regular
     pub const RESET: &str = "\x1B[0m";
