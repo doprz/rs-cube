@@ -48,7 +48,6 @@ const GRID_LINE_COLOR: &str = ansi_escape_code::color::BLACK;
 
 const K2: f32 = 10.0;
 
-#[inline(never)]
 fn get_vector_mag(vec: &Vector3f) -> f32 {
     let x: f32 = vec.x;
     let y: f32 = vec.y;
@@ -57,7 +56,6 @@ fn get_vector_mag(vec: &Vector3f) -> f32 {
     (x * x + y * y + z * z).sqrt()
 }
 
-#[inline(never)]
 fn norm_vector(vec: &mut Vector3f) {
     let x: f32 = vec.x;
     let y: f32 = vec.y;
@@ -74,7 +72,6 @@ fn norm_vector(vec: &mut Vector3f) {
     }
 }
 
-#[inline(never)]
 fn update_buffers(
     i: f32,
     j: f32,
@@ -146,7 +143,6 @@ fn update_buffers(
     }
 }
 
-#[inline(never)]
 fn init(
     points: &mut Vec<Point3D>,
     points_color: &mut Vec<bool>,
@@ -297,7 +293,6 @@ fn init(
     }
 }
 
-#[inline(never)]
 fn get_axes_luminance(trig_values: &[f32], rotated_light_source: &Vector3f) -> AxesLuminance {
     let trig_values = &trig_values[..6];
 
@@ -461,7 +456,6 @@ fn get_axes_luminance(trig_values: &[f32], rotated_light_source: &Vector3f) -> A
     }
 }
 
-#[inline(never)]
 fn render_frame<'a>(
     mut handle: impl Write,
     width: u16,
@@ -604,7 +598,6 @@ fn handle_sigint() {
     SIGINT_CALLED.store(true, Ordering::Relaxed);
 }
 
-#[inline(never)]
 fn main() {
     unsafe {
         signal(SIGINT, handle_sigint as usize);
