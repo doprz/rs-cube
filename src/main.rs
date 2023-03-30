@@ -761,24 +761,24 @@ fn main() {
             write!(
                 handle,
                 "{}{}{}\r",
-                ansi_escape_code::SetCursorPos(1, 1 + 24),
+                ansi_escape_code::SetCursorPos(1, 1 + 11),
                 ansi_escape_code::color::RESET,
                 ansi_escape_code::EraseLineStartToCursor
                 )
                 .unwrap();
-            write!(handle, "{fps:>7.2}fps", fps = fps).unwrap();
+            write!(handle, "{fps:>8.2}fps", fps = fps).unwrap();
 
             write!(
                 handle,
                 "{}{}{}\r",
-                ansi_escape_code::SetCursorPos(2, 1 + 24),
+                ansi_escape_code::SetCursorPos(2, 1 + 22),
                 ansi_escape_code::color::RESET,
                 ansi_escape_code::EraseLineStartToCursor
                 )
                 .unwrap();
             write!(
                 handle,
-                "{ms:>7.2}ms ({us:>7}us)",
+                "{ms:>8.2}ms ({us:>7}us)",
                 ms = ms_duration,
                 us = us_duration
                 )
