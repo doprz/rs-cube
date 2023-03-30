@@ -2,7 +2,7 @@
 name = "rs-cube"
 version = "1.0.0"
 edition = "2021"
-description = "Blazingly fast 3D ASCII Rubik's Cube"
+description = "Blazingly Fast 3D ASCII Rubik's Cube"
 license = "MIT OR Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

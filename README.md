@@ -1,9 +1,32 @@
 # rs-cube
 
-Blazingly fast 3D ASCII Rubik's Cube
+Blazingly Fast 3D ASCII Rubik's Cube
 
 ![rs-cube Logo Light](images/rs-cube_light.png#gh-light-mode-only)
 ![rs-cube Logo Dark](images/rs-cube_dark.png#gh-dark-mode-only)
+
+## Installation
+
+### Homebrew
+
+```sh
+brew tap doprz/rs-cube
+brew install rs-cube
+```
+
+### Cargo
+
+```sh
+cargo install rs-cube
+```
+
+### From Source
+
+To build and install from source, first checkout to the tag or branch you want to install, then run
+```sh
+cargo install --path .
+```
+This will build and install `rs-cube` in your `~/.cargo/bin`. Make sure that `~/.cargo/bin` is in your `$PATH` variable.
 
 ## License
 
