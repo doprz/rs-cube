@@ -22,7 +22,7 @@ cargo install rs-cube
 
 ### From Source
 
-To build and install from source, first checkout to the tag or branch you want to install, then run
+To build and install from source, first checkout the tag or branch you want to install, then run
 ```sh
 cargo install --path .
 ```
