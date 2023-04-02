@@ -1,7 +1,6 @@
 # rs-cube
 
-![Crates.io](https://img.shields.io/crates/v/rs-cube)
-![Crates.io](https://img.shields.io/crates/l/rs-cube)
+[![crates.io](https://img.shields.io/crates/v/rs-cube)](https://crates.io/crates/rs-cube)
 
 Blazingly Fast 3D ASCII Rubik's Cube
 
