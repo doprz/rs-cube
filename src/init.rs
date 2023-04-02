@@ -17,7 +17,7 @@ pub struct Point3D {
     pub z: f32,
 }
 
-pub fn rubix(
+pub fn rubik(
     points: &mut Vec<Point3D>,
     points_color: &mut Vec<bool>,
     points_axis_range: &mut PointsAxisRange,

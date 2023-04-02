@@ -401,7 +401,7 @@ fn main() {
     let mut points_color: Vec<bool> = Vec::with_capacity(points_size);
     let mut points_axis_range = init::PointsAxisRange { a: 0, b: 0, c: 0 };
 
-    init::rubix(
+    init::rubik(
         &mut points,
         &mut points_color,
         &mut points_axis_range,
