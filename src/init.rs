@@ -1,6 +1,3 @@
-//init function has been renamed and moved here due to its sheer size and required variables
-//i plan to condense the rubix function below to rid of repetiton later. or you could try!
-
 const CUBE_SIZE: f32 = 1.0; // Unit Cube
 const FRAC_CUBE_SIZE_2: f32 = CUBE_SIZE / 2.0;
 const FRAC_CUBE_SIZE_3: f32 = CUBE_SIZE / 3.0;
@@ -17,7 +14,7 @@ pub struct Point3D {
     pub z: f32,
 }
 
-pub fn rubik(
+pub fn init(
     points: &mut Vec<Point3D>,
     points_color: &mut Vec<bool>,
     points_axis_range: &mut PointsAxisRange,
